@@ -1,0 +1,18 @@
+version: '3.9'
+
+services:
+  backend:
+    networks:
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.mdma-backend.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.mdma-backend.entrypoints=websecure
+      - traefik.http.routers.mdma-backend.service=mdma-backend
+      - traefik.http.routers.mdma-backend.tls=true
+      - traefik.http.routers.mdma-backend.tls.certresolver=lets-encrypt
+      - traefik.http.services.mdma-backend.loadbalancer.server.port=8080
+
+networks:
+  traefik:
+    external: true
