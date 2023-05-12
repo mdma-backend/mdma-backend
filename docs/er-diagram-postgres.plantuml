@@ -1,0 +1,105 @@
+@startuml PostgreSQL
+title PostgreSQL
+hide circle
+
+entity user_account {
+    id : bigserial <<PK>>
+    --
+    role_id : bigint <<FK>>
+    created_at : timestamp
+    updated_at : timestamp
+    username : varchar(120)
+    password : bytea
+}
+
+entity service_account {
+    id : bigserial <<PK>>
+    --
+    role_id : bigint <<FK>>
+    created_at : timestamp
+    updated_at : timestamp
+    name : varchar(120)
+}
+
+entity role {
+    id : bigserial <<PK>>
+    --
+    created_at : timestamp
+    updated_at : timestamp
+    name : varchar(120)
+}
+
+entity role_permission {
+    role_id : bigint <<FK>>
+    permission : permission
+    --
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+enum permission {
+    --
+    controller_sensor_create
+    controller_sensor_read
+    controller_sensor_update
+    controller_sensor_delete
+    sensor_data_create
+    sensor_data_read
+    sensor_data_delete
+    user_account_create
+    user_account_read
+    user_account_update
+    user_account_delete
+    controller_update_create
+    controller_update_read
+    controller_update_update
+    controller_update_delete
+    metric_create
+    metric_read
+}
+
+entity data {
+    id : uuid <<PK>>
+    --
+    controller_id : uuid <<FK>>
+    data_type_id : bigint <<FK>>
+    created_at: timestamp
+    measured_at : timestamp
+    value : varchar(120)
+}
+
+entity data_type {
+    id : bigserial <<PK>>
+    --
+    created_at : timestamp
+    updated_at : timestamp
+    name : varchar(120)
+}
+
+entity controller {
+    id : uuid <<PK>>
+    --
+    update_id : bigint <<FK>>
+    created_at : timestamp
+    updated_at : timestamp
+    location : point
+}
+
+entity update {
+    id : bigserial <<PK>>
+    --
+    created_at : timestamp
+    updated_at : timestamp
+    data : bytea
+    version : varchar(120)
+}
+
+user_account ||..|{ role
+service_account ||..|{ role
+role ||..|{ role_permission
+role_permission }|..|| permission
+data }o..|| data_type
+data }o..|| controller
+controller }o..|| update
+
+@enduml

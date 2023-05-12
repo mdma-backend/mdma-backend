@@ -1,0 +1,337 @@
+openapi: '3.0.2'
+info:
+  title: FoREST
+  version: '1.0'
+servers:
+  - url: https://backend.mdma.haveachin.de/
+
+# ENDPOINTS ########################################################################
+
+paths:
+  /mesh-nodes/{uuid}:
+    parameters:
+      - $ref: "#/components/parameters/UUID"
+    get:
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetMeshNode"
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutMeshNode"
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetMeshNode"
+    delete:
+      responses:
+        204:
+          description: OK.
+
+  /mesh-nodes:
+    get:
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 1
+                items:
+                  $ref: "#/components/schemas/GetMeshNode"
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostMeshNode"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetMeshNode"
+
+  /mesh-nodes/{uuid}/data:
+    parameters:
+      - $ref: "#/components/parameters/UUID"
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostData"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetSingleData"
+
+  /aggregated-data:
+    get:
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: meshNodes
+          in: query
+          required: false
+          description: if not given, all mesh nodes are considered
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/UUID"
+        - name: measuredBefore
+          in: query
+          required: false
+          description: if not given, all measurements up to now are considered
+          schema:
+            type: string
+            format: date-time
+        - name: measuredAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: sampleDuration
+          in: query
+          required: false
+          description: mutually exclusive with sampleCount, but either sampleDuration or sampleCount must be given
+          schema:
+            type: string
+            example: "4h12m3s"
+            description: format is described here https://pkg.go.dev/time#example-ParseDuration.
+        - name: sampleCount
+          in: query
+          required: false
+          description: mutually exclusive with sampleDuration, but either sampleDuration or sampleCount must be given
+          schema:
+            type: integer
+        - name: aggregateFunction
+          in: query
+          required: true
+          description: required if sampleCount is given
+          schema:
+            type: string
+            enum:
+              - range
+              - count
+              - minimum
+              - maximum
+              - sum
+              - median
+              - average
+      description: If no parameter is given the latest value for each type is returned.
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAggregatedData"
+
+  /data:
+    get:
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: meshNodes
+          in: query
+          required: false
+          description: if not given, all mesh nodes are considered
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/UUID"
+        - name: measuredBefore
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: measuredAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      description: If no parameter is given the latest value for each type is returned.
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetData"
+
+  /data/types:
+    get:
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+# SCHEMAS ####################################################################################
+
+components:
+  schemas:
+    UUID:
+      type: string
+      example: "0cc56633-05ae-4cc3-8f71-801f429caeca"
+
+    Resource:
+      type: object
+      properties:
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MeshNode:
+      type: object
+      properties:
+        latitude:
+          type: number
+          example: 49.127327
+        longitude:
+          type: number
+          example: 9.264715
+
+    GetMeshNode:
+      allOf:
+        - $ref: "#/components/schemas/Resource"
+        - $ref: "#/components/schemas/MeshNode"
+
+    PostMeshNode:
+      allOf:
+        - type: object
+          properties:
+            uuid:
+              $ref: "#/components/schemas/UUID"
+        - $ref: "#/components/schemas/MeshNode"
+
+    PutMeshNode:
+      $ref: "#/components/schemas/MeshNode"
+
+    GetData:
+      type: array
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            example: "temperature"
+          data:
+            type: array
+            items:
+              type: object
+              properties:
+                mesh-nodeUUID:
+                  type: string
+                  format: uuid
+                  example: "f858ff4f-7315-4d66-938d-8bd871e3e216"
+                measurements:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      UUID:
+                        $ref: "#/components/schemas/UUID"
+                      measuredAt:
+                        type: string
+                        format: date-time
+                      value:
+                        type: string
+                        example: "23.23423"
+
+    GetAggregatedData:
+      type: array
+      items:
+        type: object
+        properties:
+          aggregationFunction:
+            type: string
+            example: "average"
+          type:
+            type: string
+            example: "temperature"
+          meshNodeUUIDs:
+            type: array
+            items:
+              $ref: "#/components/schemas/UUID"
+          samples:
+            type: array
+            items:
+              type: object
+              properties:
+                firstMeasurementAt:
+                  type: string
+                  format: date-time
+                lastMeasurementAt:
+                  type: string
+                  format: date-time
+                value:
+                  type: string
+                  example: "23.23423"
+
+    SingleData:
+      type: object
+      properties:
+        measuredAt:
+          type: string
+          format: date-time
+        type:
+          type: string
+          example: "temperature"
+        value:
+          type: string
+          example: "23.23423"
+
+    PostData:
+      $ref: "#/components/schemas/SingleData"
+
+    GetSingleData:
+      allOf:
+        - $ref: "#/components/schemas/Resource"
+        - $ref: "#/components/schemas/SingleData"
+
+
+  parameters:
+    UUID:
+      name: uuid
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/UUID"

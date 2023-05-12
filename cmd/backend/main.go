@@ -1,21 +1,82 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/mdma-backend/mdma-backend/api"
 )
 
 var commitHash string
 
 func main() {
-	log.Println("Starting backend")
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	log.Printf("Starting Backend %s\n", commitHash)
 
-		link := fmt.Sprintf("<a href=\"https://github.com/mdma-backend/mdma-backend/tree/%s\">%s</a>", commitHash, commitHash)
+	if err := run(); err != nil {
+		log.Println(err)
+	}
+}
 
-		w.Write([]byte("<html><body>Hello, world!<br />Commit hash: " + link + "</body></html>"))
+func run() error {
+	r := chi.NewRouter()
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"*"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: false,
+	}))
+
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/docs", http.StatusFound)
 	})
-	log.Println(http.ListenAndServe(":8080", nil))
+
+	docsPath := "/docs"
+	openAPIPath := filepath.Join(docsPath + "/swagger.yaml")
+	r.Handle(docsPath, api.SwaggerUIHandler(api.SwaggerUIOpts{
+		Path:    docsPath,
+		SpecURL: openAPIPath,
+		Title:   "FoREST API Docs",
+	}))
+	r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
+
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+	}
+
+	srvErrChan := make(chan error, 1)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			srvErrChan <- err
+		}
+	}()
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+	select {
+	case err := <-srvErrChan:
+		return err
+	case sig := <-signalChan:
+		log.Printf("received %s\n", sig)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		return fmt.Errorf("shutting down server: %w", err)
+	}
+
+	return nil
 }
