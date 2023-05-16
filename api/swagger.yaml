@@ -100,14 +100,14 @@ paths:
             type: array
             items:
               $ref: "#/components/schemas/UUID"
-        - name: measuredBefore
+        - name: measuredStart
           in: query
           required: false
           description: if not given, all measurements up to now are considered
           schema:
             type: string
             format: date-time
-        - name: measuredAfter
+        - name: measuredEnd
           in: query
           required: false
           schema:
@@ -166,13 +166,13 @@ paths:
             type: array
             items:
               $ref: "#/components/schemas/UUID"
-        - name: measuredBefore
+        - name: measuredStart
           in: query
           required: false
           schema:
             type: string
             format: date-time
-        - name: measuredAfter
+        - name: measuredEnd
           in: query
           required: false
           schema:
@@ -198,6 +198,18 @@ paths:
                 type: array
                 items:
                   type: string
+  
+  /accounts/users:
+    get:
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: 
 
 # SCHEMAS ####################################################################################
 
@@ -326,6 +338,8 @@ components:
       allOf:
         - $ref: "#/components/schemas/Resource"
         - $ref: "#/components/schemas/SingleData"
+
+    Get
 
 
   parameters:

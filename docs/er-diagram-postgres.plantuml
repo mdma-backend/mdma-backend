@@ -94,6 +94,15 @@ entity update {
     version : varchar(120)
 }
 
+entity update_error {
+    id : bigserial <<PK>>
+    --
+    controller_id : bigint <<FK>>
+    update_id : bigint <<FK>>
+    created_at : timestamp
+    message : varchar(120)
+}
+
 user_account ||..|{ role
 service_account ||..|{ role
 role ||..|{ role_permission
@@ -101,5 +110,7 @@ role_permission }|..|| permission
 data }o..|| data_type
 data }o..|| controller
 controller }o..|| update
+update_error }o..|| controller
+update_error }o..|| update
 
 @enduml
