@@ -339,9 +339,6 @@ components:
         - $ref: "#/components/schemas/Resource"
         - $ref: "#/components/schemas/SingleData"
 
-    Get
-
-
   parameters:
     UUID:
       name: uuid
