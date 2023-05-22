@@ -15,6 +15,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/mdma-backend/mdma-backend/api"
+	"github.com/mdma-backend/mdma-backend/internal/api/data"
+	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node"
 )
 
 var commitHash string
@@ -50,6 +52,9 @@ func run() error {
 		Title:   "FoREST API Docs",
 	}))
 	r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
+
+	r.Mount("/data", data.NewService())
+	r.Mount("/mesh-node", mesh_node.NewService())
 
 	srv := &http.Server{
 		Addr:    ":8080",

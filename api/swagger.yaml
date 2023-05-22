@@ -12,6 +12,8 @@ paths:
     parameters:
       - $ref: "#/components/parameters/UUID"
     get:
+      tags:
+        - Mesh-Nodes
       responses:
         200:
           description: OK.
@@ -20,6 +22,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetMeshNode"
     put:
+      tags:
+        - Mesh-Nodes
       requestBody:
         content:
           application/json:
@@ -33,12 +37,16 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetMeshNode"
     delete:
+      tags:
+        - Mesh-Nodes
       responses:
         204:
           description: OK.
 
   /mesh-nodes:
     get:
+      tags:
+        - Mesh-Nodes
       responses:
         200:
           description: OK.
@@ -50,6 +58,8 @@ paths:
                 items:
                   $ref: "#/components/schemas/GetMeshNode"
     post:
+      tags:
+        - Mesh-Nodes
       requestBody:
         content:
           application/json:
@@ -69,6 +79,8 @@ paths:
     parameters:
       - $ref: "#/components/parameters/UUID"
     post:
+      tags:
+        - Mesh-Nodes
       requestBody:
         content:
           application/json:
@@ -84,8 +96,10 @@ paths:
                 items:
                   $ref: "#/components/schemas/GetSingleData"
 
-  /aggregated-data:
+  /data/aggregated:
     get:
+      tags:
+        - Data
       parameters:
         - name: type
           in: query
@@ -152,6 +166,8 @@ paths:
 
   /data:
     get:
+      tags:
+        - Data
       parameters:
         - name: type
           in: query
@@ -187,8 +203,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetData"
 
+  /data/{uuid}:
+    get:
+      tags:
+        - Data
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSingleData"
+
   /data/types:
     get:
+      tags:
+        - Data
       responses:
         200:
           description: OK.
@@ -199,17 +229,19 @@ paths:
                 items:
                   type: string
   
-  /accounts/users:
-    get:
-      responses:
-        200:
-          description: OK.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: 
+  #/accounts/users:
+  #  get:
+  #    tags:
+  #      - Users
+  #    responses:
+  #      200:
+  #        description: OK.
+  #        content:
+  #          application/json:
+  #            schema:
+  #              type: array
+  #              items:
+  #                type: 
 
 # SCHEMAS ####################################################################################
 

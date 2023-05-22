@@ -19,6 +19,7 @@ entity service_account {
     created_at : timestamp
     updated_at : timestamp
     name : varchar(120)
+    token: bytea
 }
 
 entity role {
@@ -34,15 +35,14 @@ entity role_permission {
     permission : permission
     --
     created_at : timestamp
-    updated_at : timestamp
 }
 
 enum permission {
     --
-    controller_sensor_create
-    controller_sensor_read
-    controller_sensor_update
-    controller_sensor_delete
+    controller_create
+    controller_read
+    controller_update
+    controller_delete
     sensor_data_create
     sensor_data_read
     sensor_data_delete
