@@ -554,23 +554,6 @@ paths:
                 $ref: "#/components/schemas/GetUpdate"
         400:
           description: Bad Request.
-    put:
-      tags:
-        - Updates
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Update"
-      responses:
-        200:
-          description: OK.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetUpdate"
-        400:
-          description: Bad Request.
     delete:
       tags:
         - Updates
