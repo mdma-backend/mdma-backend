@@ -81,6 +81,7 @@ paths:
     post:
       tags:
         - Mesh-Nodes
+        - Data
       requestBody:
         content:
           application/json:
@@ -204,6 +205,8 @@ paths:
                 $ref: "#/components/schemas/GetData"
 
   /data/{uuid}:
+    parameters:
+      - $ref: "#/components/parameters/UUID"
     get:
       tags:
         - Data
@@ -213,7 +216,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetSingleData"
+                $ref: "#/components/schemas/GetSingleData"   
+        400:
+          description: Bad Request.
+    delete:
+      tags:
+        - Data
+      responses:
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
 
   /data/types:
     get:
@@ -229,19 +244,401 @@ paths:
                 items:
                   type: string
   
-  #/accounts/users:
-  #  get:
-  #    tags:
-  #      - Users
-  #    responses:
-  #      200:
-  #        description: OK.
-  #        content:
-  #          application/json:
-  #            schema:
-  #              type: array
-  #              items:
-  #                type: 
+  /login:
+    post:
+      tags:
+        - User-Accounts
+        - Login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
+        400:
+          description: Bad Request.
+  /logout:
+    post:
+      tags:
+        - User-Accounts
+        - Login
+      responses:
+        200:
+          description: OK.
+
+  /accounts/users:
+    get:
+      tags:
+        - User-Accounts
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetUserAccount"
+    post:
+      tags:
+        - User-Accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostUserAccount"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserAccount"
+        400:
+          description: Bad Request.
+    
+  /accounts/users/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags:
+        - User-Accounts
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserAccount"
+        400:
+          description: Bad Request.
+    put:
+      tags:
+        - User-Accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserAccount"
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserAccount"
+        400:
+          description: Bad Request.
+    delete:
+      tags:
+        - User-Accounts
+      responses:
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
+
+  /accounts/services:
+    get:
+      tags:
+        - Service-Accounts
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetServiceAccount"
+    post:
+      tags:
+        - Service-Accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceAccount"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetServiceAccount"
+        400:
+          description: Bad Request.
+    
+  /accounts/services/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags:
+        - Service-Accounts
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetServiceAccount"
+        400:
+          description: Bad Request.
+    put:
+      tags:
+        - Service-Accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceAccount"
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetServiceAccount"
+        400:
+          description: Bad Request.
+    delete:
+      tags:
+        - Service-Accounts
+      responses:
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
+
+  /roles:
+    get:
+      tags:
+        - Roles
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetRole"
+    post:
+      tags:
+        - Roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Role"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRole"
+        400:
+          description: Bad Request.
+
+  /roles/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags:
+        - Roles
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRole"
+        400:
+          description: Bad Request.
+    put:
+      tags:
+        - Roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Role"
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRole"
+        400:
+          description: Bad Request.
+    delete:
+      tags:
+        - Roles
+      responses:
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
+    
+  /roles/permissions:
+    get:
+      tags:
+        - Roles
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Permission"
+
+  /update:
+    get:
+      tags:
+        - Updates
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetUpdate"
+    post:
+      tags:
+        - Updates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Update"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUpdate"
+        400:
+          description: Bad Request.
+
+  /update/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags:
+        - Updates
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUpdate"
+        400:
+          description: Bad Request.
+    put:
+      tags:
+        - Updates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Update"
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUpdate"
+        400:
+          description: Bad Request.
+    delete:
+      tags:
+        - Updates
+      responses:
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
+            
+  /update/{id}/error:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags:
+        - Updates
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetUpdateError"
+    post:
+      tags:
+        - Updates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateError"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUpdateError"
+        400:
+          description: Bad Request.
+
+  /update/{updateId}/error/{errorId}:
+    parameters:
+      - name: updateId
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ID"
+      - name: errorId
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ID"
+    get:
+      tags:
+        - Updates
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUpdateError"
+        400:
+          description: Bad Request.
 
 # SCHEMAS ####################################################################################
 
@@ -250,8 +647,12 @@ components:
     UUID:
       type: string
       example: "0cc56633-05ae-4cc3-8f71-801f429caeca"
+    
+    ID:
+      type: integer
+      example: 1337
 
-    Resource:
+    ResourceWithUUID:
       type: object
       properties:
         uuid:
@@ -263,9 +664,141 @@ components:
           type: string
           format: date-time
 
+    ResourceWithID:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    Credentials:
+      type: object
+      properties:
+        username:
+          type: string
+          example: H4r4ldD3rH4ck3r
+        password:
+          type: string
+          example: changeme
+
+    Token:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+    Update:
+      type: object
+      properties:
+        data:
+          type: string
+          example: UG9seWZvbiB6d2l0c2NoZXJuZCBhw59lbiBNw6R4Y2hlbnMgVsO2Z2VsIFLDvGJlbiwgSm9naHVydCB1bmQgUXVhcms=
+        version:
+          type: string
+          example: 1.0.0
+      
+    GetUpdate:
+      allOf:
+        - $ref: "#/components/schemas/ResourceWithID"
+        - $ref: "#/components/schemas/Update"
+
+    UpdateError:
+      type: object
+      properties:
+        controllerId:
+          $ref: "#/components/schemas/ID"
+        updateId:
+          $ref: "#/components/schemas/ID"
+        message:
+          type: string
+          example: Error while updating.
+
+    GetUpdateError:
+      allOf:
+        - $ref: "#/components/schemas/UpdateError"
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        createdAt:
+          type: string
+          format: date-time
+
+    UserAccount:
+      type: object
+      properties:
+        username:
+          type: string
+          example: H4r4ldD3rH4ck3r
+        roleId:
+          type: integer
+          example: 42
+
+    GetUserAccount:
+      allOf:
+        - $ref: "#/components/schemas/ResourceWithID"
+        - $ref: "#/components/schemas/UserAccount"
+
+    PostUserAccount:
+      allOf:
+        - $ref: "#/components/schemas/ResourceWithID"
+        - $ref: "#/components/schemas/UserAccount"
+      type: object
+      properties:
+        password:
+          type: string
+          example: changeme
+    
+    ServiceAccount:
+      type: object
+      properties:
+        username:
+          type: string
+          example: Gateway1
+        roleId:
+          type: integer
+          example: 42
+
+    GetServiceAccount:
+      allOf:
+        - $ref: "#/components/schemas/ResourceWithID"
+        - $ref: "#/components/schemas/ServiceAccount"
+
+    Role:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "admin"
+        permissions:
+          type: array
+          items:
+            type: string
+            example:
+              - controller_create
+              - sensor_data_read
+
+    GetRole:
+      allOf:
+        - $ref: "#/components/schemas/ResourceWithID"
+        - $ref: "#/components/schemas/Role"
+
+    Permission:
+      type: string
+      example: sensor_data_read
+        
+
     MeshNode:
       type: object
       properties:
+        updateId:
+          $ref: "#/components/schemas/ID"
         latitude:
           type: number
           example: 49.127327
@@ -275,7 +808,7 @@ components:
 
     GetMeshNode:
       allOf:
-        - $ref: "#/components/schemas/Resource"
+        - $ref: "#/components/schemas/ResourceWithUUID"
         - $ref: "#/components/schemas/MeshNode"
 
     PostMeshNode:
@@ -368,7 +901,7 @@ components:
 
     GetSingleData:
       allOf:
-        - $ref: "#/components/schemas/Resource"
+        - $ref: "#/components/schemas/ResourceWithUUID"
         - $ref: "#/components/schemas/SingleData"
 
   parameters:
@@ -378,3 +911,10 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/UUID"
+    ID:
+      name: id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+
