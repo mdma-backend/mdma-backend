@@ -104,9 +104,19 @@ CREATE INDEX idx_data_measured_at ON data (measured_at);
 CREATE INDEX idx_controller_location ON controller USING GIST (location);
 CREATE INDEX idx_update_version ON update (version);
 
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'was weiß ich');
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'was');
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'weiß');
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'ich');
+-- Controller 
+INSERT INTO "controller" ("id", "update_id", "created_at", "updated_at", "location") VALUES ('a53b3f71-f073-4578-9557-92fd19d93bb9', NULL, now(), NULL, '1,1');
+INSERT INTO "controller" ("id", "update_id", "created_at", "updated_at", "location") VALUES ('c33ea7b6-68a7-4bc6-b1e9-0c365db74081', NULL, now(), NULL, '2,2');
+
+-- Datatype
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'temperature_dummy');
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'humidity_dummy');
+
+-- Data
+INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
+VALUES ('c08fd9d6-0ecb-4932-8156-6c31cf885b46', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), NULL, '12');
+
+INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
+VALUES ('d38f7c02-8477-499e-b2f3-c38bbba0a2dd', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '2', now(), NULL, 'very wet');
 
 COMMIT;
