@@ -27,3 +27,12 @@ func (db DB) Types() ([]string, error) {
 
 	return dataTypes, nil
 }
+
+func (db DB) DeleteData(uuid string) error {
+	_, err := db.pool.Exec("DELETE FROM data WHERE id = $1;", uuid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

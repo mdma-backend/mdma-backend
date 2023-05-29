@@ -8,6 +8,7 @@ import (
 )
 
 type DataStore interface {
+	DeleteData(uuid string) error
 	Types() ([]string, error)
 }
 
@@ -27,6 +28,7 @@ func NewService(dataStore DataStore) http.Handler {
 	r.Get("/{uuid}", s.getData())
 	r.Get("/types", s.getDataTypes())
 	r.Get("/aggregated", s.getAggregatedData())
+	r.Delete("/{uuid}", s.deleteData())
 
 	return s
 }
@@ -80,5 +82,23 @@ func (s service) getDataTypes() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(response)
+	}
+}
+
+func (s service) deleteData() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uuid := chi.URLParam(r, "uuid")
+
+		// Daten löschen
+		err := s.dataStore.DeleteData(uuid)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// Erfolgsmeldung senden
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Data deleted successfully"))
 	}
 }
