@@ -8,6 +8,7 @@ import (
 )
 
 type DataStore interface {
+	Types() ([]string, error)
 }
 
 type service struct {
@@ -60,40 +61,12 @@ func (s service) getData() http.HandlerFunc {
 
 func (s service) getDataTypes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// SQL-Abfrage zur Datenbank
-
-		rows, err := s.db.Query("SELECT dataType FROM DataTypes")
+		dataTypes, err := s.dataStore.Types()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
 			return
 		}
-		defer rows.Close()
-
-		// Slice zum Speichern der Daten
-		dataTypes := []string{}
-
-		// Schleife über die Ergebniszeilen
-		for rows.Next() {
-			var dataType string
-			err := rows.Scan(&dataType)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("500 internal server error"))
-				return
-			}
-			dataTypes = append(dataTypes, dataType)
-		}
-
-		// Fehlerüberprüfung bei Schleifenausführung
-		if err := rows.Err(); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
-			return
-		}
-
-		//Dummy Daten
-		//dataTypes := []string{"temp", "cpu", "was", "auchimmer", "1337"}
 
 		// JSON-Antwort erstellen
 		response, err := json.Marshal(dataTypes)

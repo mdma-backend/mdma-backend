@@ -7,7 +7,7 @@ DROP TYPE IF EXISTS permission;
 
 or
 
-DROP SCHEMA IF EXISTS public;
+DROP SCHEMA IF EXISTS public CASCADE;
 */
 
 CREATE SCHEMA IF NOT EXISTS public;
@@ -103,5 +103,10 @@ CREATE INDEX idx_user_account_username ON user_account (username);
 CREATE INDEX idx_data_measured_at ON data (measured_at);
 CREATE INDEX idx_controller_location ON controller USING GIST (location);
 CREATE INDEX idx_update_version ON update (version);
+
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'was weiß ich');
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'was');
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'weiß');
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'ich');
 
 COMMIT;
