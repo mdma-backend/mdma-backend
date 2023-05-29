@@ -21,4 +21,4 @@ pipeline:
       - export NAME=mdma-backend
       - docker compose -p $NAME down
       - docker compose -p $NAME up -d
-    secrets: [domain]
+    secrets: [domain, postgres_user, postgres_password]

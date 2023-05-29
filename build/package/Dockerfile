@@ -7,7 +7,7 @@ ENV GO111MODULE=on
 RUN CGO_ENABLED=0 go build -ldflags "-X main.commitHash=$(git rev-parse HEAD)" -o backend cmd/backend/*
 
 FROM alpine:latest
-LABEL maintainer="haveachin <haveachin@haveachin.de>"
+LABEL maintainer="haveachin <haveachin@proton.me>"
 RUN apk --no-cache add ca-certificates
 WORKDIR /
 COPY --from=builder /backend/backend ./
