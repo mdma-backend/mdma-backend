@@ -1,22 +1,25 @@
 package data
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
-type service struct {
-	handler http.Handler
-	db      *sql.DB
+type DataStore interface {
 }
 
-func NewService() http.Handler {
+type service struct {
+	handler   http.Handler
+	dataStore DataStore
+}
+
+func NewService(dataStore DataStore) http.Handler {
 	r := chi.NewRouter()
 	s := service{
-		handler: r,
+		handler:   r,
+		dataStore: dataStore,
 	}
 
 	r.Get("/", s.getManyData())
