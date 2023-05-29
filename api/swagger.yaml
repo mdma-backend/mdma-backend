@@ -4,6 +4,7 @@ info:
   version: '1.0'
 servers:
   - url: https://backend.mdma.haveachin.de/
+  - url: http://localhost:8080
 
 # ENDPOINTS ########################################################################
 

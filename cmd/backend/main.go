@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -45,7 +44,7 @@ func run() error {
 	})
 
 	docsPath := "/docs"
-	openAPIPath := filepath.Join(docsPath + "/swagger.yaml")
+	openAPIPath := docsPath + "/swagger.yaml"
 	r.Handle(docsPath, api.SwaggerUIHandler(api.SwaggerUIOpts{
 		Path:    docsPath,
 		SpecURL: openAPIPath,
