@@ -114,9 +114,9 @@ INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL
 
 -- Data
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('c08fd9d6-0ecb-4932-8156-6c31cf885b46', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), NULL, '12');
+VALUES ('c08fd9d6-0ecb-4932-8156-6c31cf885b46', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), now(), '12');
 
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('d38f7c02-8477-499e-b2f3-c38bbba0a2dd', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '2', now(), NULL, 'very wet');
+VALUES ('d38f7c02-8477-499e-b2f3-c38bbba0a2dd', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '2', now(), now(), 'very wet');
 
 COMMIT;

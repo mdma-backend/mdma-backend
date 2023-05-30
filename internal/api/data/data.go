@@ -10,11 +10,23 @@ import (
 type DataStore interface {
 	DeleteData(uuid string) error
 	Types() ([]string, error)
+	Data(uuid string) (Data, error)
 }
 
 type service struct {
 	handler   http.Handler
 	dataStore DataStore
+}
+
+// Welches UpdatedAt???
+// type geht nicht, muss groß sein oder anderes Wort
+type Data struct {
+	Uuid           string
+	ControllerUuid string
+	Type           string
+	CreatedAt      string
+	MeasuredAt     string
+	Value          string
 }
 
 func NewService(dataStore DataStore) http.Handler {
@@ -53,11 +65,28 @@ func (s service) getManyData() http.HandlerFunc {
 
 func (s service) getData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		//del
-		//wir nutzen chi	https://github.com/go-chi/chi
-		//für query parameter --> chi.URLParam(r, "uuid") gibt UUID wieder aus der Request
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 not implemented"))
+		uuid := chi.URLParam(r, "uuid")
+
+		// Daten aus der Datenbank abrufen
+		data, err := s.dataStore.Data(uuid)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// JSON-Antwort erstellen
+		response, err := json.Marshal(data)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// Antwort senden
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 	}
 }
 
