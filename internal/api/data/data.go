@@ -3,14 +3,16 @@ package data
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type DataStore interface {
+	GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) ([]Data, error)
+	Data(uuid string) (Data, error)
 	DeleteData(uuid string) error
 	Types() ([]string, error)
-	Data(uuid string) (Data, error)
 }
 
 type service struct {
@@ -58,8 +60,37 @@ func (s service) getAggregatedData() http.HandlerFunc {
 
 func (s service) getManyData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 not implemented"))
+		dataType := r.URL.Query().Get("type")
+		meshNodeUUIDs := r.URL.Query()["meshNodes"]
+		measuredStart := r.URL.Query().Get("measuredStart")
+		if measuredStart == "" {
+			measuredStart = time.Unix(0, 0).String()
+		}
+		measuredEnd := r.URL.Query().Get("measuredEnd")
+		if measuredEnd == "" {
+			measuredEnd = time.Unix(0, 0).String()
+		}
+
+		// Daten aus der Datenbank abrufen
+		data, err := s.dataStore.GetManyData(dataType, meshNodeUUIDs, measuredStart, measuredEnd)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// JSON-Antwort erstellen
+		response, err := json.Marshal(data)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// Antwort senden
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 	}
 }
 
