@@ -21,7 +21,7 @@ type service struct {
 }
 
 // Welches UpdatedAt???
-// type geht nicht, muss groß sein oder anderes Wort
+// "type" geht nicht, muss groß sein oder anderes Wort
 type Data struct {
 	Uuid           string
 	ControllerUuid string
