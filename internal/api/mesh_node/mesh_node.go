@@ -20,7 +20,7 @@ type MeshNodeStore interface {
 	GetMeshNodes() ([]MeshNode, error)
 	GetMeshNode(uuid string) (MeshNode, error)
 	PostMeshNode(latitude float32, longitude float32, updateId float32) error
-	PostMeshNodeData(data string) error
+	PostMeshNodeData(measuredAt string, meshNodeType string, value string) error
 	PutMeshNode(uuid string, latitude float32, longitude float32) error
 	DeleteMeshNode(uuid string) error
 }
