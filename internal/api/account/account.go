@@ -1,37 +1,43 @@
 package account
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
 
-type service struct {
-	handler http.Handler
+type UserStore interface {
+	User(id int) (UserAccount, error)
+	PostUser(username string, password []byte) (int, error)
+	PutUser(id int, username string, password []byte) (UserAccount, error)
 }
 
-func NewService() http.Handler {
+type service struct {
+	handler   http.Handler
+	userStore UserStore
+}
+type UserAccount struct {
+	ID        int
+	Role      string
+	CreatedAt string
+	UpdatedAt string
+	Username  string
+	Password  []byte
+}
+
+func NewService(userStore UserStore) http.Handler {
 	r := chi.NewRouter()
 	s := service{
-		handler: r,
+		handler:   r,
+		userStore: userStore,
 	}
 
-	r.Route("/accounts", func(r chi.Router) {
-		r.Route("/users", func(r chi.Router) {
-			r.Get("/{id}", s.getAccountUser())
-			r.Get("/", nil)
-			r.Post("/", nil)
-			r.Put("/{id}", nil)
-			r.Delete("/{id}", nil)
-		})
-		r.Route("/services", func(r chi.Router) {
-			r.Get("/{id}", nil)
-			r.Get("/", nil)
-			r.Post("/", nil)
-			r.Put("/{id}", nil)
-			r.Delete("/{id}", nil)
-		})
-	})
+	r.Get("/{id}", s.getAccountUser())
+	r.Post("/", s.createAccountUser())
+	r.Put("/{id}", s.updateAccountUser())
 
 	return s
 }
@@ -42,7 +48,71 @@ func (s service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s service) getAccountUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 not implemented"))
+		id := chi.URLParam(r, "id")
+		idInt, _ := strconv.Atoi(id) // Convert Account-ID-String in Integer
+
+		//Daten holen
+		account, err := s.userStore.User(idInt)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintf(w, "Account not found")
+			return
+		}
+
+		// JSON-Antwort erstellen
+		response, err := json.Marshal(account)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// Antwort senden
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 	}
+}
+func (s service) createAccountUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var account UserAccount
+		err := json.NewDecoder(r.Body).Decode(&account)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Invalid request payload")
+			return
+		}
+
+		// JSON-Antwort senden
+		w.WriteHeader(http.StatusCreated)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(account)
+	}
+}
+func (s service) updateAccountUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		idInt, _ := strconv.Atoi(id)
+
+		var account UserAccount
+		err := json.NewDecoder(r.Body).Decode(&account)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Invalid request payload")
+			return
+		}
+
+		// Datenbank aufrufen, um den Benutzer zu aktualisieren
+		account, err = s.userStore.PutUser(idInt, account.Username, account.Password)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "Failed to update user")
+			return
+		}
+
+		// Erfolgreiche Antwort senden
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "User updated successfully")
+	}
+
 }
