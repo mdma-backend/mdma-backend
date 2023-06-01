@@ -3,13 +3,14 @@ package data
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type DataStore interface {
-	//GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (AggregatedData, error)
+	GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (AggregatedData, error)
 	GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) (ManyData, error)
 	GetData(uuid string) (Data, error)
 	DeleteData(uuid string) error
@@ -21,20 +22,19 @@ type service struct {
 	dataStore DataStore
 }
 
-/*
-	type AggregatedData struct {
-		AggregateFunction string
-		DataType          string
-		MeshNodeUUIDs     []string
-		Samples           []Sample
-	}
+type AggregatedData struct {
+	AggregateFunction string
+	DataType          string
+	MeshNodeUUIDs     []string
+	Samples           []Sample
+}
 
-	type Sample struct {
-		FirstMeasurementAt string
-		LastMeasurementAt  string
-		Value              string
-	}
-*/
+type Sample struct {
+	FirstMeasurementAt string
+	LastMeasurementAt  string
+	Value              string
+}
+
 type ManyData struct {
 	DataType      string
 	MeasuredDatas []MeasuredData
@@ -52,7 +52,6 @@ type Measurement struct {
 }
 
 // Welches UpdatedAt???
-// type geht nicht, muss groß sein oder anderes Wort
 type Data struct {
 	UUID           string
 	ControllerUuid string
@@ -72,7 +71,7 @@ func NewService(dataStore DataStore) http.Handler {
 	r.Get("/", s.getManyData())
 	r.Get("/{uuid}", s.getData())
 	r.Get("/types", s.getDataTypes())
-	//r.Get("/aggregated", s.getAggregatedData())
+	r.Get("/aggregated", s.getAggregatedData())
 	r.Delete("/{uuid}", s.deleteData())
 
 	return s
@@ -82,58 +81,71 @@ func (s service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
 }
 
-/*
-// sampleDuration string, sampleCount int, aggregateFunction string
+func (s service) getAggregatedData() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dataType := r.URL.Query().Get("type")
+		meshNodeUUIDs := r.URL.Query()["meshNodes"]
 
-	func (s service) getAggregatedData() http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			dataType := r.URL.Query().Get("type")
-			meshNodeUUIDs := r.URL.Query()["meshNodes"]
-
-			measuredStart := r.URL.Query().Get("measuredStart")
-			if measuredStart == "" {
-				measuredStart = time.Unix(0, 0).String()
-			}
-			measuredEnd := r.URL.Query().Get("measuredEnd")
-			if measuredEnd == "" {
-				measuredEnd = time.Unix(0, 0).String()
-			}
-
-			sampleDuration := r.URL.Query().Get("sampleDuration")
-			sampleCount := r.URL.Query().Get("sampleCount")
-			if sampleDuration == "" && sampleCount == "" {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("400 eiher sampleDuration or sampleCount must be given"))
-				return
-			}
-
-			aggregateFunction := r.URL.Query().Get("aggregateFunction")
-			if sampleCount != "" && aggregateFunction == "" {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("400 aggregateFunction is required if sampleCount is given"))
-				return
-			}
-
-			data, err := s.dataStore.GetManyData(dataType, meshNodeUUIDs, measuredStart, measuredEnd)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("500 internal server error"))
-				return
-			}
-
-			response, err := json.Marshal(data)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("500 internal server error"))
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(response)
+		measuredStart := r.URL.Query().Get("measuredStart")
+		if measuredStart == "" {
+			measuredStart = time.Unix(0, 0).String()
 		}
+		measuredEnd := r.URL.Query().Get("measuredEnd")
+		if measuredEnd == "" {
+			measuredEnd = time.Unix(0, 0).String()
+		}
+
+		sampleDuration := r.URL.Query().Get("sampleDuration")
+		sampleCount := 0
+		if sampleCountValue := r.URL.Query().Get("sampleCount"); sampleCountValue != "" {
+			var err error
+			sampleCount, err = strconv.Atoi(sampleCountValue)
+			println(sampleCount)
+			if err != nil {
+				println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("400 wrong input for sampleCount. Must be integer greater than 0."))
+				return
+			}
+		}
+
+		if sampleDuration == "" && sampleCount == 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("400 eiher sampleDuration or sampleCount must be given"))
+			return
+		}
+
+		aggregateFunction := r.URL.Query().Get("aggregateFunction")
+		if aggregateFunction == "" {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("400 aggregateFunction is required"))
+			return
+		}
+
+		println(dataType, meshNodeUUIDs, measuredStart, measuredEnd, sampleDuration, sampleCount, aggregateFunction)
+
+		data, err := s.dataStore.GetAggregatedData(dataType, meshNodeUUIDs, measuredStart, measuredEnd, sampleDuration, sampleCount, aggregateFunction)
+		if err != nil {
+			println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		response, err := json.Marshal(data)
+		if err != nil {
+			println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 	}
-*/
+}
+
 func (s service) getManyData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dataType := r.URL.Query().Get("type")

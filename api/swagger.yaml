@@ -146,7 +146,6 @@ paths:
         - name: aggregateFunction
           in: query
           required: true
-          description: required if sampleCount is given
           schema:
             type: string
             enum:
