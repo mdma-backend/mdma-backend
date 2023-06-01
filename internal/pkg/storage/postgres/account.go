@@ -28,7 +28,7 @@ func (us *UserStore) GetUser(id int) (account.UserAccount, error) {
 
 	err := us.db.QueryRow(query, id).Scan(
 		&user.ID,
-		&user.Role,
+		&user.RoleID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.Username,
@@ -53,7 +53,7 @@ func (us *UserStore) CreateUser(user account.UserAccount) error {
 
 	_, err := us.db.Exec(
 		query,
-		user.Role,
+		user.RoleID,
 		user.CreatedAt,
 		user.UpdatedAt,
 		user.Username,
@@ -76,13 +76,26 @@ func (us *UserStore) UpdateUser(id int, user account.UserAccount) error {
 
 	_, err := us.db.Exec(
 		query,
-		user.Role,
+		user.RoleID,
 		user.UpdatedAt,
 		user.Username,
 		user.Password,
 		id,
 	)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func (us *UserStore) DeleteUser(id int) error {
+	query := `
+		DELETE FROM user_account
+		WHERE id = $1
+	`
+
+	_, err := us.db.Exec(query, id)
 	if err != nil {
 		return err
 	}

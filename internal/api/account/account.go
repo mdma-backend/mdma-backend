@@ -11,8 +11,9 @@ import (
 
 type UserStore interface {
 	User(id int) (UserAccount, error)
-	PostUser(username string, password []byte) (int, error)
+	PostUser(roleID int, username string, password []byte) (int, error)
 	PutUser(id int, username string, password []byte) (UserAccount, error)
+	DeleteUser(id int) error
 }
 
 type service struct {
@@ -21,7 +22,7 @@ type service struct {
 }
 type UserAccount struct {
 	ID        int
-	Role      string
+	RoleID    int
 	CreatedAt string
 	UpdatedAt string
 	Username  string
@@ -38,6 +39,7 @@ func NewService(userStore UserStore) http.Handler {
 	r.Get("/{id}", s.getAccountUser())
 	r.Post("/", s.createAccountUser())
 	r.Put("/{id}", s.updateAccountUser())
+	r.Delete("/{id}", s.deleteAccountUser())
 
 	return s
 }
@@ -115,4 +117,22 @@ func (s service) updateAccountUser() http.HandlerFunc {
 		fmt.Fprint(w, "User updated successfully")
 	}
 
+}
+func (s service) deleteAccountUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		idInt, _ := strconv.Atoi(id)
+
+		// Delete the user account
+		err := s.userStore.DeleteUser(idInt)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "Failed to delete user")
+			return
+		}
+
+		// Successful response
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "User deleted successfully")
+	}
 }
