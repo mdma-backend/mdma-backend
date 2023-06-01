@@ -20,7 +20,7 @@ type service struct {
 	dataStore DataStore
 }
 
-// Welches UpdatedAt???
+// Welches updatedAt???
 // "type" geht nicht, muss groß sein oder anderes Wort
 type Data struct {
 	Uuid           string

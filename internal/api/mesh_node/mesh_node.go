@@ -4,21 +4,24 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"strconv"
 )
 
 type MeshNode struct {
 	Uuid      string
-	Type      string
-	Lat       float32
-	Lng       float32
+	Latitude  float32
+	Longitude float32
 	CreatedAt string
+	UpdatedAt string
+	UpdateId  float32
 }
 
 type MeshNodeStore interface {
-	GetMeshNodes(dataType string, meshNodeUUIDs []string) ([]MeshNode, error)
+	GetMeshNodes() ([]MeshNode, error)
 	GetMeshNode(uuid string) (MeshNode, error)
-	PostMeshNode(Type string, Lat float32, Lng float32) error
+	PostMeshNode(latitude float32, longitude float32, updateId float32) error
 	PostMeshNodeData(data string) error
+	PutMeshNode(uuid string, latitude float32, longitude float32) error
 	DeleteMeshNode(uuid string) error
 }
 
@@ -116,7 +119,7 @@ func (s service) postMeshNode() http.HandlerFunc {
 			return
 		}
 
-		err = s.meshNodeStore.PostMeshNode(meshNode.Type, meshNode.Lat, meshNode.Lng)
+		err = s.meshNodeStore.PostMeshNode(meshNode.Latitude, meshNode.Longitude, meshNode.UpdateId)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
@@ -150,6 +153,22 @@ func (s service) putMeshNode() http.HandlerFunc {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			w.Write([]byte("405 Method not allowed"))
 
+			return
+		}
+
+		// Extrahiere die UUID aus dem Request-URL-Pfad
+		uuid := chi.URLParam(r, "uuid")
+		latString := r.URL.Query().Get("lat")
+		lngString := r.URL.Query().Get("lng")
+
+		lat, _ := strconv.ParseFloat(latString, 32)
+		lng, _ := strconv.ParseFloat(lngString, 32)
+
+		err := s.meshNodeStore.PutMeshNode(uuid, float32(lat), float32(lng))
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
 			return
 		}
 
