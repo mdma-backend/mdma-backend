@@ -9,10 +9,11 @@ import (
 )
 
 type DataStore interface {
-	GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) ([]Data, error)
-	Data(uuid string) (Data, error)
+	//GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (AggregatedData, error)
+	GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) (ManyData, error)
+	GetData(uuid string) (Data, error)
 	DeleteData(uuid string) error
-	Types() ([]string, error)
+	GetTypes() ([]string, error)
 }
 
 type service struct {
@@ -20,10 +21,40 @@ type service struct {
 	dataStore DataStore
 }
 
+/*
+	type AggregatedData struct {
+		AggregateFunction string
+		DataType          string
+		MeshNodeUUIDs     []string
+		Samples           []Sample
+	}
+
+	type Sample struct {
+		FirstMeasurementAt string
+		LastMeasurementAt  string
+		Value              string
+	}
+*/
+type ManyData struct {
+	DataType      string
+	MeasuredDatas []MeasuredData
+}
+
+type MeasuredData struct {
+	MeshnodeUUID string
+	Measurements []Measurement
+}
+
+type Measurement struct {
+	UUID       string
+	MeasuredAt string
+	Value      string
+}
+
 // Welches UpdatedAt???
 // type geht nicht, muss groß sein oder anderes Wort
 type Data struct {
-	Uuid           string
+	UUID           string
 	ControllerUuid string
 	Type           string
 	CreatedAt      string
@@ -41,7 +72,7 @@ func NewService(dataStore DataStore) http.Handler {
 	r.Get("/", s.getManyData())
 	r.Get("/{uuid}", s.getData())
 	r.Get("/types", s.getDataTypes())
-	r.Get("/aggregated", s.getAggregatedData())
+	//r.Get("/aggregated", s.getAggregatedData())
 	r.Delete("/{uuid}", s.deleteData())
 
 	return s
@@ -51,13 +82,58 @@ func (s service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
 }
 
-func (s service) getAggregatedData() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 not implemented"))
-	}
-}
+/*
+// sampleDuration string, sampleCount int, aggregateFunction string
 
+	func (s service) getAggregatedData() http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			dataType := r.URL.Query().Get("type")
+			meshNodeUUIDs := r.URL.Query()["meshNodes"]
+
+			measuredStart := r.URL.Query().Get("measuredStart")
+			if measuredStart == "" {
+				measuredStart = time.Unix(0, 0).String()
+			}
+			measuredEnd := r.URL.Query().Get("measuredEnd")
+			if measuredEnd == "" {
+				measuredEnd = time.Unix(0, 0).String()
+			}
+
+			sampleDuration := r.URL.Query().Get("sampleDuration")
+			sampleCount := r.URL.Query().Get("sampleCount")
+			if sampleDuration == "" && sampleCount == "" {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("400 eiher sampleDuration or sampleCount must be given"))
+				return
+			}
+
+			aggregateFunction := r.URL.Query().Get("aggregateFunction")
+			if sampleCount != "" && aggregateFunction == "" {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("400 aggregateFunction is required if sampleCount is given"))
+				return
+			}
+
+			data, err := s.dataStore.GetManyData(dataType, meshNodeUUIDs, measuredStart, measuredEnd)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("500 internal server error"))
+				return
+			}
+
+			response, err := json.Marshal(data)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("500 internal server error"))
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(response)
+		}
+	}
+*/
 func (s service) getManyData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dataType := r.URL.Query().Get("type")
@@ -71,7 +147,6 @@ func (s service) getManyData() http.HandlerFunc {
 			measuredEnd = time.Unix(0, 0).String()
 		}
 
-		// Daten aus der Datenbank abrufen
 		data, err := s.dataStore.GetManyData(dataType, meshNodeUUIDs, measuredStart, measuredEnd)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -79,7 +154,6 @@ func (s service) getManyData() http.HandlerFunc {
 			return
 		}
 
-		// JSON-Antwort erstellen
 		response, err := json.Marshal(data)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -87,7 +161,6 @@ func (s service) getManyData() http.HandlerFunc {
 			return
 		}
 
-		// Antwort senden
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(response)
@@ -98,15 +171,13 @@ func (s service) getData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
 
-		// Daten aus der Datenbank abrufen
-		data, err := s.dataStore.Data(uuid)
+		data, err := s.dataStore.GetData(uuid)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
 			return
 		}
 
-		// JSON-Antwort erstellen
 		response, err := json.Marshal(data)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -114,7 +185,6 @@ func (s service) getData() http.HandlerFunc {
 			return
 		}
 
-		// Antwort senden
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(response)
@@ -123,14 +193,13 @@ func (s service) getData() http.HandlerFunc {
 
 func (s service) getDataTypes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dataTypes, err := s.dataStore.Types()
+		dataTypes, err := s.dataStore.GetTypes()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
 			return
 		}
 
-		// JSON-Antwort erstellen
 		response, err := json.Marshal(dataTypes)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -138,7 +207,6 @@ func (s service) getDataTypes() http.HandlerFunc {
 			return
 		}
 
-		// Antwort senden
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(response)
@@ -149,7 +217,6 @@ func (s service) deleteData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
 
-		// Daten löschen
 		err := s.dataStore.DeleteData(uuid)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -157,7 +224,6 @@ func (s service) deleteData() http.HandlerFunc {
 			return
 		}
 
-		// Erfolgsmeldung senden
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Data deleted successfully"))
 	}

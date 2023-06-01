@@ -8,13 +8,19 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
 )
 
-func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) ([]data.Data, error) {
+/*
+	func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (data.AggregatedData, error) {
+		return data.AggregatedData{}, nil
+	}
+*/
+
+func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) (data.ManyData, error) {
 	var query = `
-		SELECT d.controller_id, dt.name, d.created_at, d.measured_at, d.value
-		FROM data d
-		JOIN data_type dt ON d.data_type_id = dt.id
-		WHERE dt.name = $1
-	`
+			SELECT d.id, d.controller_id, dt.name, d.created_at, d.measured_at, d.value
+			FROM data d
+			JOIN data_type dt ON d.data_type_id = dt.id
+			WHERE dt.name = $1
+		`
 	params := []interface{}{dataType}
 
 	if len(meshNodeUUIDs) != 0 {
@@ -32,8 +38,7 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 	if measuredStart != time.Unix(0, 0).String() {
 		startTime, err := time.Parse("2006-01-02 15:04:05 -0700 MST", measuredStart)
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return data.ManyData{}, err
 		}
 		query += " AND d.measured_at > $" + strconv.Itoa(len(meshNodeUUIDs)+2)
 		params = append(params, startTime)
@@ -42,8 +47,7 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 	if measuredEnd != time.Unix(0, 0).String() {
 		endTime, err := time.Parse("2006-01-02 15:04:05 -0700 MST", measuredEnd)
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return data.ManyData{}, err
 		}
 		query += " AND d.measured_at < $" + strconv.Itoa(len(meshNodeUUIDs)+3)
 		params = append(params, endTime)
@@ -51,32 +55,58 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 
 	rows, err := db.pool.Query(query, params...)
 	if err != nil {
-		fmt.Println(err)
-		return nil, err
+		return data.ManyData{}, err
 	}
 	defer rows.Close()
 
-	var result []data.Data
+	var result data.ManyData
+	var currentMeasuredData *data.MeasuredData
+
+	result.DataType = dataType
 
 	for rows.Next() {
-		var d data.Data
-		err := rows.Scan(&d.ControllerUuid, &d.Type, &d.CreatedAt, &d.MeasuredAt, &d.Value)
+		var id string
+		var controllerUUID string
+		var dataType string
+		var createdAt string
+		var measuredAt string
+		var value string
+
+		err := rows.Scan(&id, &controllerUUID, &dataType, &createdAt, &measuredAt, &value)
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return data.ManyData{}, err
 		}
-		result = append(result, d)
+
+		if currentMeasuredData == nil || currentMeasuredData.MeshnodeUUID != controllerUUID {
+			if currentMeasuredData != nil {
+				result.MeasuredDatas = append(result.MeasuredDatas, *currentMeasuredData)
+			}
+
+			currentMeasuredData = &data.MeasuredData{
+				MeshnodeUUID: controllerUUID,
+			}
+		}
+
+		measurement := data.Measurement{
+			UUID:       id,
+			MeasuredAt: measuredAt,
+			Value:      value,
+		}
+
+		currentMeasuredData.Measurements = append(currentMeasuredData.Measurements, measurement)
+	}
+
+	if currentMeasuredData != nil {
+		result.MeasuredDatas = append(result.MeasuredDatas, *currentMeasuredData)
 	}
 
 	if err := rows.Err(); err != nil {
-		fmt.Println(err)
-		return nil, err
+		return data.ManyData{}, err
 	}
-
 	return result, nil
 }
 
-func (db DB) Data(uuid string) (data.Data, error) {
+func (db DB) GetData(uuid string) (data.Data, error) {
 	query := `
 		SELECT d.controller_id, dt.name, d.created_at, d.measured_at, d.value 
 		FROM data AS d
@@ -85,7 +115,6 @@ func (db DB) Data(uuid string) (data.Data, error) {
 		WHERE d.id = $1;
 	`
 
-	// Daten aus der Datenbank abrufen
 	rows, err := db.pool.Query(query, uuid)
 	if err != nil {
 		fmt.Println(err)
@@ -94,9 +123,8 @@ func (db DB) Data(uuid string) (data.Data, error) {
 	defer rows.Close()
 
 	var d data.Data
-	d.Uuid = uuid
+	d.UUID = uuid
 
-	// Fetch the data from the query result
 	for rows.Next() {
 		err := rows.Scan(&d.ControllerUuid, &d.Type, &d.CreatedAt, &d.MeasuredAt, &d.Value)
 		if err != nil {
@@ -105,7 +133,6 @@ func (db DB) Data(uuid string) (data.Data, error) {
 		}
 	}
 
-	// Check for any errors during the iteration
 	if err := rows.Err(); err != nil {
 		fmt.Println(err)
 		return data.Data{}, err
@@ -114,7 +141,7 @@ func (db DB) Data(uuid string) (data.Data, error) {
 	return d, nil
 }
 
-func (db DB) Types() ([]string, error) {
+func (db DB) GetTypes() ([]string, error) {
 	query := `
 		SELECT name FROM data_type;
 	`
@@ -125,10 +152,8 @@ func (db DB) Types() ([]string, error) {
 	}
 	defer rows.Close()
 
-	// Slice zum Speichern der Daten
 	dataTypes := []string{}
 
-	// Schleife über die Ergebniszeilen
 	for rows.Next() {
 		var dataType string
 		err := rows.Scan(&dataType)
@@ -138,7 +163,6 @@ func (db DB) Types() ([]string, error) {
 		dataTypes = append(dataTypes, dataType)
 	}
 
-	// Fehlerüberprüfung bei Schleifenausführung
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
