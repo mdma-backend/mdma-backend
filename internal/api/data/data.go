@@ -115,6 +115,12 @@ func (s service) getAggregatedData() http.HandlerFunc {
 			return
 		}
 
+		if sampleCount != 0 && sampleDuration != "" {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("400 sampleDuration or sampleCount are mutually exclusive"))
+			return
+		}
+
 		aggregateFunction := r.URL.Query().Get("aggregateFunction")
 		if aggregateFunction == "" {
 			w.WriteHeader(http.StatusInternalServerError)

@@ -9,90 +9,139 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
 )
 
+//TODO
+//Add sample logic
+//Try with real Dates
+
 func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (data.AggregatedData, error) {
-	aggregateFunction = strings.ToLower(aggregateFunction)
-	query := `SELECT `
+	var startTime time.Time
+	var endTime time.Time
 
-	if aggregateFunction == "count" {
-		query += `COUNT(value)`
-	} else if aggregateFunction == "sum" {
-		query += `SUM(value::numeric)`
-	} else if aggregateFunction == "minimum" {
-		query += `MIN(value)`
-	} else if aggregateFunction == "maximum" {
-		query += `MAX(value)`
-	} else if aggregateFunction == "average" {
-		query += `AVG(value::numeric)`
-	} else if aggregateFunction == "range" {
-		query += `MAX(value::numeric) - MIN(value::numeric)`
-	}
-
-	params := []interface{}{dataType}
-
-	query += `
-	FROM data d
-	JOIN data_type dt ON d.data_type_id = dt.id
-	WHERE dt.name = $1
-	`
-
-	query, params, err := newFunction(measuredStart, query, params, measuredEnd, meshNodeUUIDs)
-	if err != nil {
-		return data.AggregatedData{}, err
-	}
-
-	rows, err := db.pool.Query(query, params...)
-	if err != nil {
-		println("ads")
-		fmt.Println(err)
-		return data.AggregatedData{}, err
-	}
-	defer rows.Close()
-
-	var aggregatedData data.AggregatedData
-	aggregatedData.DataType = dataType
-	aggregatedData.MeshNodeUUIDs = meshNodeUUIDs
-	aggregatedData.AggregateFunction = aggregateFunction
-
-	for rows.Next() {
-		var sampleValue string
-		err := rows.Scan(&sampleValue)
+	if measuredStart != time.Unix(0, 0).String() {
+		var err error
+		startTime, err = time.Parse(time.RFC3339, measuredStart)
 		if err != nil {
-			fmt.Println(err)
+			return data.AggregatedData{}, err
+		}
+	}
+	if measuredEnd != time.Unix(0, 0).String() {
+		var err error
+		endTime, err = time.Parse(time.RFC3339, measuredEnd)
+		if err != nil {
+			return data.AggregatedData{}, err
+		}
+	}
+
+	var timeStamps []time.Time
+	if sampleDuration != "" {
+		sampleTime, err := time.ParseDuration(sampleDuration)
+		if err != nil {
 			return data.AggregatedData{}, err
 		}
 
-		sample := data.Sample{
-			Value: sampleValue,
-		}
+		intervals := int(endTime.Sub(startTime) / sampleTime)
 
-		aggregatedData.Samples = append(aggregatedData.Samples, sample)
+		for i := 0; i <= intervals+1; i++ {
+			timestamp := startTime.Add(sampleTime * time.Duration(i))
+			timeStamps = append(timeStamps, timestamp)
+		}
+	} else if sampleCount > 1 {
+		println("test")
 	}
 
-	if err := rows.Err(); err != nil {
-		fmt.Println(err)
-		return data.AggregatedData{}, err
+	totalSamples := len(timeStamps)
+	if totalSamples == 0 {
+		totalSamples = 1
+	}
+
+	var aggregatedData data.AggregatedData
+
+	for currentSample := 0; currentSample < totalSamples; currentSample++ {
+		aggregateFunction = strings.ToLower(aggregateFunction)
+		query := `SELECT `
+
+		if aggregateFunction == "count" {
+			query += `COUNT(value)`
+		} else if aggregateFunction == "sum" {
+			query += `SUM(value::numeric)`
+		} else if aggregateFunction == "minimum" {
+			query += `MIN(value)`
+		} else if aggregateFunction == "maximum" {
+			query += `MAX(value)`
+		} else if aggregateFunction == "average" {
+			query += `AVG(value::numeric)`
+		} else if aggregateFunction == "range" {
+			query += `MAX(value::numeric) - MIN(value::numeric)`
+		}
+
+		params := []interface{}{dataType}
+
+		query += `
+		FROM data d
+		JOIN data_type dt ON d.data_type_id = dt.id
+		WHERE dt.name = $1
+		`
+
+		query, params, err := newFunction(measuredStart, startTime, query, params, measuredEnd, endTime, meshNodeUUIDs, timeStamps, currentSample)
+		if err != nil {
+			return data.AggregatedData{}, err
+		}
+
+		rows, err := db.pool.Query(query, params...)
+		if err != nil {
+			println("ads")
+			fmt.Println(err)
+			return data.AggregatedData{}, err
+		}
+		defer rows.Close()
+
+		aggregatedData.DataType = dataType
+		aggregatedData.MeshNodeUUIDs = meshNodeUUIDs
+		aggregatedData.AggregateFunction = aggregateFunction
+
+		for rows.Next() {
+			var sampleValue string
+			err := rows.Scan(&sampleValue)
+			if err != nil {
+				fmt.Println(err)
+				return data.AggregatedData{}, err
+			}
+
+			sample := data.Sample{
+				Value: sampleValue,
+			}
+
+			aggregatedData.Samples = append(aggregatedData.Samples, sample)
+		}
+
+		if err := rows.Err(); err != nil {
+			fmt.Println(err)
+			return data.AggregatedData{}, err
+		}
 	}
 
 	return aggregatedData, nil
 }
 
-func newFunction(measuredStart string, query string, params []interface{}, measuredEnd string, meshNodeUUIDs []string) (string, []interface{}, error) {
+func newFunction(measuredStart string, startTime time.Time, query string, params []interface{}, measuredEnd string, endTime time.Time, meshNodeUUIDs []string, timeStamps []time.Time, currentSample int) (string, []interface{}, error) {
 	if measuredStart != time.Unix(0, 0).String() {
-		startTime, err := time.Parse(time.RFC3339, measuredStart)
-		if err != nil {
-			return "", nil, err
+		if len(timeStamps) != 0 {
+			query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
+			params = append(params, timeStamps[currentSample])
+		} else {
+			query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
+			params = append(params, startTime)
 		}
-		query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
-		params = append(params, startTime)
 	}
 
 	if measuredEnd != time.Unix(0, 0).String() {
-		endTime, err := time.Parse(time.RFC3339, measuredEnd)
-		if err != nil {
-			return "", nil, err
+		if len(timeStamps) != 0 {
+			query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
+			params = append(params, timeStamps[currentSample+1])
+		} else {
+			query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
+			params = append(params, endTime)
 		}
-		query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
-		params = append(params, endTime)
 	}
 
 	if len(meshNodeUUIDs) > 0 {

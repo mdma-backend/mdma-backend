@@ -116,29 +116,29 @@ INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL
 
 -- Data Controller 1
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('c08fd9d6-0ecb-4932-8156-6c31cf885b46', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), now(), '12');
+VALUES ('c08fd9d6-0ecb-4932-8156-6c31cf885b46', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-06-02T00:46:16+02:00', '12');
 
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('3254f1ed-135d-47fc-8acc-4d97862b55a8', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), now(), '32');
+VALUES ('3254f1ed-135d-47fc-8acc-4d97862b55a8', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-06-01T00:46:16+02:00', '32');
 
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('ee38b09b-692d-4e7c-bed8-287aea55e573', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), now(), '34');
+VALUES ('ee38b09b-692d-4e7c-bed8-287aea55e573', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-05-30T00:46:16+02:00', '34');
 
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('4fec4425-5a90-492b-addd-acbedcb6e616', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '2', now(), now(), '12');
+VALUES ('4fec4425-5a90-492b-addd-acbedcb6e616', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '2', now(), '2023-05-29T00:46:16+02:00', '12');
 
 -- Data Controller 2
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('d38f7c02-8477-499e-b2f3-c38bbba0a2dd', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '2', now(), now(), 'very wet');
+VALUES ('d38f7c02-8477-499e-b2f3-c38bbba0a2dd', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '2', now(), '2023-05-28T00:46:16+02:00', '7');
 
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('0f8601a5-e545-4d38-97af-63350e7f99c2', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), now(), '23');
+VALUES ('0f8601a5-e545-4d38-97af-63350e7f99c2', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), '2023-05-27T00:46:16+02:00', '23');
 
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('9fa74669-1423-4979-9c52-ff34477d263c', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), now(), '41');
+VALUES ('9fa74669-1423-4979-9c52-ff34477d263c', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), '2023-05-26T00:46:16+02:00', '41');
 
 -- Data Controller 3
 INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('d3d5fcff-2eef-4170-9e8e-fb63a5975a42', 'f1aef837-04ac-4316-ae1f-0465bc2eb2fa', '1', now(), now(), '12');
+VALUES ('d3d5fcff-2eef-4170-9e8e-fb63a5975a42', 'f1aef837-04ac-4316-ae1f-0465bc2eb2fa', '1', now(), '2023-05-25T00:46:16+02:00', '12');
 
 COMMIT;
