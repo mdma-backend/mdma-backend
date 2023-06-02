@@ -2,7 +2,6 @@ package data
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -52,7 +51,6 @@ type Measurement struct {
 	Value      string
 }
 
-// Welches UpdatedAt???
 type Data struct {
 	UUID           string
 	ControllerUuid string
@@ -97,14 +95,11 @@ func (s service) getAggregatedData() http.HandlerFunc {
 		}
 
 		sampleDuration := r.URL.Query().Get("sampleDuration")
-		fmt.Println(sampleDuration)
 		sampleCount := 0
 		if sampleCountValue := r.URL.Query().Get("sampleCount"); sampleCountValue != "" {
 			var err error
 			sampleCount, err = strconv.Atoi(sampleCountValue)
-			println(sampleCount)
 			if err != nil {
-				println(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("400 wrong input for sampleCount. Must be integer greater than 0."))
 				return
@@ -134,7 +129,6 @@ func (s service) getAggregatedData() http.HandlerFunc {
 
 		data, err := s.dataStore.GetAggregatedData(dataType, meshNodeUUIDs, measuredStart, measuredEnd, sampleDuration, sampleCount, aggregateFunction)
 		if err != nil {
-			println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
 			return
@@ -142,7 +136,6 @@ func (s service) getAggregatedData() http.HandlerFunc {
 
 		response, err := json.Marshal(data)
 		if err != nil {
-			println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
 			return

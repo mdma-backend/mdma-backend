@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -10,26 +9,16 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
 )
 
-//TODO
-//Try with real Dates
-
 func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (data.AggregatedData, error) {
-	fmt.Println(sampleDuration)
-
 	timeStamps, err := identifyTimeStamps(measuredStart, measuredEnd, sampleDuration, sampleCount)
 	if err != nil {
 		return data.AggregatedData{}, err
 	}
 
-	fmt.Println(timeStamps)
-
 	query, params, err := createQuery(dataType, aggregateFunction)
 	if err != nil {
 		return data.AggregatedData{}, err
 	}
-
-	fmt.Println(query)
-	fmt.Println(params)
 
 	aggregatedData, err := db.getAggregatedDataSamples(timeStamps, query, params, meshNodeUUIDs)
 	if err != nil {
@@ -39,8 +28,6 @@ func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, measured
 	aggregatedData.AggregateFunction = aggregateFunction
 	aggregatedData.DataType = dataType
 	aggregatedData.MeshNodeUUIDs = meshNodeUUIDs
-
-	fmt.Println(aggregatedData)
 
 	return aggregatedData, nil
 }
@@ -69,7 +56,6 @@ func identifyTimeStamps(measuredStart string, measuredEnd string, sampleDuration
 	sampleTime := time.Duration(0)
 
 	if sampleDuration != "" {
-		fmt.Println(sampleDuration)
 		var err error
 		sampleTime, err = time.ParseDuration(sampleDuration)
 		if err != nil {
@@ -80,9 +66,6 @@ func identifyTimeStamps(measuredStart string, measuredEnd string, sampleDuration
 	} else {
 		sampleTime = duration / time.Duration(sampleCount)
 	}
-	fmt.Println(duration)
-	fmt.Println(sampleTime)
-	fmt.Println(intervals)
 	var timeStamps []time.Time
 
 	for i := 0; i <= intervals; i++ {
@@ -148,11 +131,9 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 			query += `)`
 		}
 
-		fmt.Println(query)
 		rows, err := db.pool.Query(query, params...)
 		if err != nil {
 			println("error in query")
-			fmt.Println(err)
 			return data.AggregatedData{}, err
 		}
 		defer rows.Close()
@@ -163,7 +144,6 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 			var nullableSampleValue sql.NullString
 			err := rows.Scan(&nullableSampleValue)
 			if err != nil {
-				fmt.Println(err)
 				return data.AggregatedData{}, err
 			}
 
@@ -186,7 +166,6 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 		}
 
 		if err := rows.Err(); err != nil {
-			fmt.Println(err)
 			return data.AggregatedData{}, err
 		}
 
@@ -203,155 +182,6 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 	return aggregatedData, nil
 }
 
-/*
-	func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (data.AggregatedData, error) {
-		var startTime time.Time
-		var endTime time.Time
-
-		if measuredStart != time.Unix(0, 0).String() {
-			var err error
-			startTime, err = time.Parse(time.RFC3339, measuredStart)
-			if err != nil {
-				return data.AggregatedData{}, err
-			}
-		}
-		if measuredEnd != time.Unix(0, 0).String() {
-			var err error
-			endTime, err = time.Parse(time.RFC3339, measuredEnd)
-			if err != nil {
-				return data.AggregatedData{}, err
-			}
-		}
-
-		var timeStamps []time.Time
-		if sampleDuration != "" {
-			sampleTime, err := time.ParseDuration(sampleDuration)
-			if err != nil {
-				return data.AggregatedData{}, err
-			}
-
-			intervals := int(endTime.Sub(startTime) / sampleTime)
-
-			for i := 0; i <= intervals+1; i++ {
-				timestamp := startTime.Add(sampleTime * time.Duration(i))
-				timeStamps = append(timeStamps, timestamp)
-			}
-		} else if sampleCount > 1 {
-			println("test")
-		}
-
-		totalSamples := len(timeStamps)
-		if totalSamples == 0 {
-			totalSamples = 1
-		}
-
-		var aggregatedData data.AggregatedData
-
-		for currentSample := 0; currentSample < totalSamples; currentSample++ {
-			aggregateFunction = strings.ToLower(aggregateFunction)
-			query := `SELECT `
-
-			if aggregateFunction == "count" {
-				query += `COUNT(value)`
-			} else if aggregateFunction == "sum" {
-				query += `SUM(value::numeric)`
-			} else if aggregateFunction == "minimum" {
-				query += `MIN(value)`
-			} else if aggregateFunction == "maximum" {
-				query += `MAX(value)`
-			} else if aggregateFunction == "average" {
-				query += `AVG(value::numeric)`
-			} else if aggregateFunction == "range" {
-				query += `MAX(value::numeric) - MIN(value::numeric)`
-			}
-
-			params := []interface{}{dataType}
-
-			query += `
-			FROM data d
-			JOIN data_type dt ON d.data_type_id = dt.id
-			WHERE dt.name = $1
-			`
-
-			query, params, err := newFunction(measuredStart, startTime, query, params, measuredEnd, endTime, meshNodeUUIDs, timeStamps, currentSample)
-			if err != nil {
-				return data.AggregatedData{}, err
-			}
-
-			rows, err := db.pool.Query(query, params...)
-			if err != nil {
-				println("ads")
-				fmt.Println(err)
-				return data.AggregatedData{}, err
-			}
-			defer rows.Close()
-
-			aggregatedData.DataType = dataType
-			aggregatedData.MeshNodeUUIDs = meshNodeUUIDs
-			aggregatedData.AggregateFunction = aggregateFunction
-
-			for rows.Next() {
-				var sampleValue string
-				err := rows.Scan(&sampleValue)
-				if err != nil {
-					fmt.Println(err)
-					return data.AggregatedData{}, err
-				}
-
-				sample := data.Sample{
-					Value: sampleValue,
-				}
-
-				aggregatedData.Samples = append(aggregatedData.Samples, sample)
-			}
-
-			if err := rows.Err(); err != nil {
-				fmt.Println(err)
-				return data.AggregatedData{}, err
-			}
-		}
-
-		return aggregatedData, nil
-	}
-*/
-/*
-func newFunction(measuredStart string, startTime time.Time, query string, params []interface{}, measuredEnd string, endTime time.Time, meshNodeUUIDs []string, timeStamps []time.Time, currentSample int) (string, []interface{}, error) {
-	if measuredStart != time.Unix(0, 0).String() {
-		if len(timeStamps) != 0 {
-			query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
-			params = append(params, timeStamps[currentSample])
-		} else {
-			query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
-			params = append(params, startTime)
-		}
-	}
-
-	if measuredEnd != time.Unix(0, 0).String() {
-		if len(timeStamps) != 0 {
-			query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
-			params = append(params, timeStamps[currentSample+1])
-		} else {
-			query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
-			params = append(params, endTime)
-		}
-	}
-
-	if len(meshNodeUUIDs) > 0 {
-		query += `AND controller_id IN (`
-		for i, uuid := range meshNodeUUIDs {
-			if i != 0 {
-				query += `, `
-			}
-			query += `$` + strconv.Itoa(len(params)+1+i)
-			params = append(params, uuid)
-			println(query)
-			fmt.Println(params)
-		}
-		query += `)`
-	}
-	return query, params, nil
-}
-*/
 func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) (data.ManyData, error) {
 	var query = `
 			SELECT d.id, d.controller_id, dt.name, d.created_at, d.measured_at, d.value
@@ -376,7 +206,6 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 	if measuredStart != time.Unix(0, 0).String() {
 		startTime, err := time.Parse(time.RFC3339, measuredStart)
 		if err != nil {
-			fmt.Println(err)
 			return data.ManyData{}, err
 		}
 		query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
@@ -386,7 +215,6 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 	if measuredEnd != time.Unix(0, 0).String() {
 		endTime, err := time.Parse(time.RFC3339, measuredEnd)
 		if err != nil {
-			fmt.Println(err)
 			return data.ManyData{}, err
 		}
 		query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
@@ -457,7 +285,6 @@ func (db DB) GetData(uuid string) (data.Data, error) {
 
 	rows, err := db.pool.Query(query, uuid)
 	if err != nil {
-		fmt.Println(err)
 		return data.Data{}, err
 	}
 	defer rows.Close()
@@ -468,13 +295,11 @@ func (db DB) GetData(uuid string) (data.Data, error) {
 	for rows.Next() {
 		err := rows.Scan(&d.ControllerUuid, &d.Type, &d.CreatedAt, &d.MeasuredAt, &d.Value)
 		if err != nil {
-			fmt.Println(err)
 			return data.Data{}, err
 		}
 	}
 
 	if err := rows.Err(); err != nil {
-		fmt.Println(err)
 		return data.Data{}, err
 	}
 
