@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -96,6 +97,7 @@ func (s service) getAggregatedData() http.HandlerFunc {
 		}
 
 		sampleDuration := r.URL.Query().Get("sampleDuration")
+		fmt.Println(sampleDuration)
 		sampleCount := 0
 		if sampleCountValue := r.URL.Query().Get("sampleCount"); sampleCountValue != "" {
 			var err error
