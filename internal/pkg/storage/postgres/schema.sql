@@ -2,7 +2,7 @@ BEGIN;
 
 -- Drop all tables
 /*
-DROP TABLE IF EXISTS user_account, service_account, role_permission, role, data, data_type, controller, update CASCADE;
+DROP TABLE IF EXISTS user_account, service_account, role_permission, role, data, data_type, mesh_node, mesh_node_update CASCADE;
 DROP TYPE IF EXISTS permission;
 
 or
@@ -15,30 +15,35 @@ CREATE SCHEMA IF NOT EXISTS public;
 -- Erstellen der Tabellen
 
 CREATE TABLE role (
-    id SERIAL NOT NULL PRIMARY KEY,
+    id BIGSERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
-    name VARCHAR(120) NOT NULL
+    name VARCHAR(120) UNIQUE NOT NULL
 );
 
 CREATE TYPE permission AS ENUM (
-    'controller_create',
-    'controller_read',
-    'controller_update',
-    'controller_delete',
-    'sensor_data_create',
-    'sensor_data_read',
-    'sensor_data_delete',
+    'mesh_node_create',
+    'mesh_node_read',
+    'mesh_node_update',
+    'mesh_node_delete',
+
+    'mesh_node_update_create',
+    'mesh_node_update_read',
+    'mesh_node_update_delete',
+
+    'data_create',
+    'data_read',
+    'data_delete',
+
     'user_account_create',
     'user_account_read',
     'user_account_update',
     'user_account_delete',
-    'controller_update_create',
-    'controller_update_read',
-    'controller_update_update',
-    'controller_update_delete',
-    'metric_create',
-    'metric_read'
+
+    'service_account_create',
+    'service_account_read',
+    'service_account_update',
+    'service_account_delete',
 );
 
 CREATE TABLE role_permission (
@@ -48,7 +53,7 @@ CREATE TABLE role_permission (
 );
 
 CREATE TABLE user_account (
-    id SERIAL NOT NULL PRIMARY KEY,
+    id BIGSERIAL NOT NULL PRIMARY KEY,
     role_id BIGINT REFERENCES role(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
@@ -57,7 +62,7 @@ CREATE TABLE user_account (
 );
 
 CREATE TABLE service_account (
-    id SERIAL NOT NULL PRIMARY KEY,
+    id BIGSERIAL NOT NULL PRIMARY KEY,
     role_id BIGINT REFERENCES role(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
@@ -65,24 +70,24 @@ CREATE TABLE service_account (
     token BYTEA NOT NULL
 );
 
-CREATE TABLE update (
-    id SERIAL NOT NULL PRIMARY KEY,
+CREATE TABLE mesh_node_update (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     data BYTEA NOT NULL,
     version VARCHAR(120) NOT NULL
 );
 
-CREATE TABLE controller (
+CREATE TABLE mesh_node (
     id UUID NOT NULL PRIMARY KEY,
-    update_id BIGINT REFERENCES update(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    mesh_node_update_id BIGINT REFERENCES mesh_node(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     location POINT NOT NULL
 );
 
 CREATE TABLE data_type (
-    id SERIAL NOT NULL PRIMARY KEY,
+    id BIGSERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     name VARCHAR(120) NOT NULL
@@ -90,7 +95,7 @@ CREATE TABLE data_type (
 
 CREATE TABLE data (
     id UUID NOT NULL PRIMARY KEY,
-    controller_id UUID NOT NULL REFERENCES controller(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    mesh_node_id UUID NOT NULL REFERENCES mesh_node(id) ON DELETE CASCADE ON UPDATE CASCADE,
     data_type_id BIGINT NOT NULL REFERENCES data_type(id) ON DELETE CASCADE ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     measured_at TIMESTAMP,
@@ -101,8 +106,8 @@ CREATE TABLE data (
 
 CREATE INDEX idx_user_account_username ON user_account (username);
 CREATE INDEX idx_data_measured_at ON data (measured_at);
-CREATE INDEX idx_controller_location ON controller USING GIST (location);
-CREATE INDEX idx_update_version ON update (version);
+CREATE INDEX idx_mesh_node_location ON mesh_node USING GIST (location);
+CREATE INDEX idx_mesh_node_version ON mesh_node (version);
 
 -- Controller 
 INSERT INTO "controller" ("id", "update_id", "created_at", "updated_at", "location") VALUES ('a53b3f71-f073-4578-9557-92fd19d93bb9', NULL, now(), NULL, '1,1');
