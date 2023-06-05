@@ -3,6 +3,7 @@ package mesh_node
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/mdma-backend/mdma-backend/internal/api/data"
 	"net/http"
 	"strconv"
 )
@@ -20,7 +21,7 @@ type MeshNodeStore interface {
 	GetMeshNodes() ([]MeshNode, error)
 	GetMeshNode(uuid string) (MeshNode, error)
 	PostMeshNode(latitude float32, longitude float32, updateId float32) error
-	PostMeshNodeData(measuredAt string, meshNodeType string, value string) error
+	PostMeshNodeData(controllerUuid string, meshNodeType string, value string, measuredAt string) error
 	PutMeshNode(uuid string, latitude float32, longitude float32) error
 	DeleteMeshNode(uuid string) error
 }
@@ -125,6 +126,7 @@ func (s service) postMeshNode() http.HandlerFunc {
 			w.Write([]byte("500 internal server error"))
 			return
 		}
+
 		// Sende eine Erfolgsantwort zurück
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("POST request successful"))
@@ -140,10 +142,27 @@ func (s service) postMeshNodeData() http.HandlerFunc {
 			return
 		}
 
-		//uuid := chi.URLParam(r, "uuid")
+		// Dekodiere den JSON-Body der Anfrage in ein Payload-Objekt
+		var meshNodeData data.Data
+		err := json.NewDecoder(r.Body).Decode(&meshNodeData)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("400 Invalid request payload"))
 
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 not implemented"))
+			return
+		}
+
+		uuid := chi.URLParam(r, "uuid")
+		err = s.meshNodeStore.PostMeshNodeData(uuid, meshNodeData.Type, meshNodeData.Value, meshNodeData.MeasuredAt)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// Sende eine Erfolgsantwort zurück
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("POST request successful"))
 	}
 }
 

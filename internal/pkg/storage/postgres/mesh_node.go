@@ -92,16 +92,16 @@ func (db DB) PostMeshNode(latitude float32, longitude float32, updateId float32)
 	return nil
 }
 
-func (db DB) PostMeshNodeData(measuredAt string, meshNodeType string, value string) error {
+func (db DB) PostMeshNodeData(controllerUuid string, meshNodeType string, value string, measuredAt string) error {
 	query := `
 		INSERT INTO data 
-		(measured_at, type, value, created_at)
+		(controller_uuid, type, value, measured_at, created_at)
 		VALUES ($1, $2, $3, $4);
 	`
 
 	createdTime, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", time.Now().String())
 
-	_, err := db.pool.Exec(query, measuredAt, meshNodeType, value, createdTime)
+	_, err := db.pool.Exec(query, controllerUuid, meshNodeType, value, measuredAt, createdTime)
 	if err != nil {
 		return err
 	}
