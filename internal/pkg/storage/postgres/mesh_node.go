@@ -193,12 +193,12 @@ func (db DB) PostMeshNodeData(meshNodeId string, data data.Data) error {
 	query = `
 		INSERT INTO data 
 		(id, mesh_node_id, data_type_id,measured_at,  value)
-		VALUES ($1, $2, $3, $4);
+		VALUES ($1, $2, $3, $4, $5);
 	`
 
 	//createdTime, _ := time.Parse(time.RFC3339, time.Now().String())
 
-	_, err = db.pool.Exec(query, meshNodeId, dataTypeId, data.MeasuredAt, data.Value)
+	_, err = db.pool.Exec(query, data.UUID, meshNodeId, dataTypeId, data.MeasuredAt, data.Value)
 	if err != nil {
 		return err
 	}
