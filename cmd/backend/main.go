@@ -83,7 +83,7 @@ func run() error {
 	r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
 
 	r.Mount("/data", data.NewService(db))
-	r.Mount("/mesh-node", mesh_node.NewService(db))
+	r.Mount("/mesh-nodes", mesh_node.NewService(db))
 
 	srv := &http.Server{
 		Addr:    ":8080",

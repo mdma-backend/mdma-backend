@@ -1,15 +1,20 @@
 package postgres
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/mdma-backend/mdma-backend/internal/api/data"
 	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node"
+	"strconv"
+	"strings"
 	"time"
 )
 
+// GetMeshNodes Funktioniert
 func (db DB) GetMeshNodes() ([]mesh_node.MeshNode, error) {
 	var query = `
 		SELECT *
-		FROM mesh_nodes AS mn
+		FROM mesh_node
 	`
 
 	rows, err := db.pool.Query(query)
@@ -22,12 +27,48 @@ func (db DB) GetMeshNodes() ([]mesh_node.MeshNode, error) {
 	var result []mesh_node.MeshNode
 
 	for rows.Next() {
-		var meshNode mesh_node.MeshNode
-		err := rows.Scan(&meshNode.Uuid, &meshNode.Latitude, &meshNode.Longitude, &meshNode.CreatedAt, &meshNode.UpdatedAt, &meshNode.UpdateId)
+
+		var id string
+		var updateId sql.NullString
+		var createdAt string
+		var updatedAt sql.NullString
+		var location string
+
+		err := rows.Scan(&id, &updateId, &createdAt, &updatedAt, &location)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
+
+		if id == "" {
+			fmt.Println(err)
+			return nil, err
+		}
+
+		locationPoint, err := parseLocation(location)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+
+		var updateIdInt int64
+		if updateId.Valid {
+			updateIdInt, err = strconv.ParseInt(updateId.String, 10, 64)
+		}
+
+		var updatedAtString string
+		if updatedAt.Valid {
+			updatedAtString = updatedAt.String
+		}
+
+		meshNode := mesh_node.MeshNode{
+			Id:        id,
+			Location:  locationPoint,
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAtString,
+			UpdateId:  updateIdInt,
+		}
+
 		result = append(result, meshNode)
 	}
 
@@ -39,15 +80,16 @@ func (db DB) GetMeshNodes() ([]mesh_node.MeshNode, error) {
 	return result, nil
 }
 
-func (db DB) GetMeshNode(uuid string) (mesh_node.MeshNode, error) {
+// GetMeshNode Funktioniert
+func (db DB) GetMeshNode(id string) (mesh_node.MeshNode, error) {
 	query := `
 		SELECT * 
-		FROM mesh_nodes
-		WHERE uuid = $1;
+		FROM mesh_node
+		WHERE id = $1;
 	`
 
 	// Daten aus der Datenbank abrufen
-	rows, err := db.pool.Query(query, uuid)
+	rows, err := db.pool.Query(query, id)
 	if err != nil {
 		fmt.Println(err)
 		return mesh_node.MeshNode{}, err
@@ -55,14 +97,48 @@ func (db DB) GetMeshNode(uuid string) (mesh_node.MeshNode, error) {
 	defer rows.Close()
 
 	var meshNode mesh_node.MeshNode
-	meshNode.Uuid = uuid
 
 	// Fetch the data from the query result
 	for rows.Next() {
-		err := rows.Scan(&meshNode.Latitude, &meshNode.Longitude, &meshNode.CreatedAt, &meshNode.UpdatedAt, &meshNode.UpdateId)
+		var id string
+		var updateId sql.NullString
+		var createdAt string
+		var updatedAt sql.NullString
+		var location string
+
+		err := rows.Scan(&id, &updateId, &createdAt, &updatedAt, &location)
 		if err != nil {
 			fmt.Println(err)
 			return mesh_node.MeshNode{}, err
+		}
+
+		if id == "" {
+			fmt.Println(err)
+			return mesh_node.MeshNode{}, err
+		}
+
+		locationPoint, err := parseLocation(location)
+		if err != nil {
+			fmt.Println(err)
+			return mesh_node.MeshNode{}, err
+		}
+
+		var updateIdInt int64
+		if updateId.Valid {
+			updateIdInt, err = strconv.ParseInt(updateId.String, 10, 64)
+		}
+
+		var updatedAtString string
+		if updatedAt.Valid {
+			updatedAtString = updatedAt.String
+		}
+
+		meshNode = mesh_node.MeshNode{
+			Id:        id,
+			Location:  locationPoint,
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAtString,
+			UpdateId:  updateIdInt,
 		}
 	}
 
@@ -75,16 +151,15 @@ func (db DB) GetMeshNode(uuid string) (mesh_node.MeshNode, error) {
 	return meshNode, nil
 }
 
-func (db DB) PostMeshNode(latitude float32, longitude float32, updateId float32) error {
+// PostMeshNode Funktioniert
+func (db DB) PostMeshNode(meshNode mesh_node.MeshNode) error {
 	query := `
 		INSERT INTO mesh_node 
-		(latitude, longitude, update_id, created_at)
-		VALUES ($1, $2, $3, $4);
+		(id, mesh_node_update_id, location)
+		VALUES ($1, $2, point($3, $4));
 	`
 
-	createdTime, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", time.Now().String())
-
-	_, err := db.pool.Exec(query, latitude, longitude, updateId, createdTime)
+	_, err := db.pool.Exec(query, meshNode.Id, strconv.Itoa(int(meshNode.UpdateId)), meshNode.Location.Lat, meshNode.Location.Lon)
 	if err != nil {
 		return err
 	}
@@ -92,16 +167,38 @@ func (db DB) PostMeshNode(latitude float32, longitude float32, updateId float32)
 	return nil
 }
 
-func (db DB) PostMeshNodeData(controllerUuid string, meshNodeType string, value string, measuredAt string) error {
-	query := `
+func (db DB) PostMeshNodeData(meshNodeId string, data data.Data) error {
+	query := "SELECT id FROM data_type WHERE name = $1"
+
+	rows, err := db.pool.Query(query, data.Type)
+
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var dataTypeId string
+	for rows.Next() {
+
+		err := rows.Scan(&dataTypeId)
+		if err != nil {
+			return err
+		}
+
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	query = `
 		INSERT INTO data 
-		(controller_uuid, type, value, measured_at, created_at)
+		(id, mesh_node_id, data_type_id,measured_at,  value)
 		VALUES ($1, $2, $3, $4);
 	`
 
-	createdTime, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", time.Now().String())
+	//createdTime, _ := time.Parse(time.RFC3339, time.Now().String())
 
-	_, err := db.pool.Exec(query, controllerUuid, meshNodeType, value, measuredAt, createdTime)
+	_, err = db.pool.Exec(query, meshNodeId, dataTypeId, data.MeasuredAt, data.Value)
 	if err != nil {
 		return err
 	}
@@ -109,16 +206,17 @@ func (db DB) PostMeshNodeData(controllerUuid string, meshNodeType string, value 
 	return nil
 }
 
-func (db DB) PutMeshNode(uuid string, latitude float32, longitude float32) error {
+// PutMeshNode Funktioniert
+func (db DB) PutMeshNode(id string, meshNode mesh_node.MeshNode) error {
 	query := `
 		UPDATE mesh_node 
-		SET lat = $2, lng = $3, updated_at = $4
-		WHERE uuid = $1;
+		SET mesh_node_update_id = $2,  updated_at = $3,  location = point($4, $5)
+		WHERE id = $1;
 	`
 
-	updatedTime, _ := time.Parse("2006-01-02 15:04:05 -0700 MST", time.Now().String())
+	updatedTime := time.Now().Format(time.RFC3339)
 
-	_, err := db.pool.Exec(query, uuid, latitude, longitude, updatedTime)
+	_, err := db.pool.Exec(query, id, strconv.Itoa(int(meshNode.UpdateId)), updatedTime, meshNode.Location.Lat, meshNode.Location.Lon)
 	if err != nil {
 		return err
 	}
@@ -126,15 +224,42 @@ func (db DB) PutMeshNode(uuid string, latitude float32, longitude float32) error
 	return nil
 }
 
-func (db DB) DeleteMeshNode(uuid string) error {
+// DeleteMeshNode Funktioniert
+func (db DB) DeleteMeshNode(id string) error {
 	query := `
-		DELETE FROM mesh_node WHERE uuid = $1;
+		DELETE FROM mesh_node WHERE id = $1;
 	`
 
-	_, err := db.pool.Exec(query, uuid)
+	_, err := db.pool.Exec(query, id)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func parseLocation(location string) (mesh_node.Point, error) {
+	location = strings.TrimSpace(location)
+
+	location = strings.Replace(location, "(", "", -1)
+	location = strings.Replace(location, ")", "", -1)
+
+	coords := strings.Split(location, ",")
+
+	latFloat, err := strconv.ParseFloat(coords[0], 32)
+	if err != nil {
+		return mesh_node.Point{}, err
+	}
+
+	lonFloat, err := strconv.ParseFloat(coords[1], 32)
+	if err != nil {
+		return mesh_node.Point{}, err
+	}
+
+	point := mesh_node.Point{
+		Lat: float32(latFloat),
+		Lon: float32(lonFloat),
+	}
+
+	return point, nil
 }

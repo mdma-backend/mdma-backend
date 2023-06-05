@@ -5,25 +5,28 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
 	"net/http"
-	"strconv"
 )
 
+type Point struct {
+	Lat float32 `json:"lat"`
+	Lon float32 `json:"lon"`
+}
+
 type MeshNode struct {
-	Uuid      string
-	Latitude  float32
-	Longitude float32
-	CreatedAt string
-	UpdatedAt string
-	UpdateId  float32
+	Id        string `json:"uuid"`
+	UpdateId  int64  `json:"updateId,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Location  Point  `json:"location"`
 }
 
 type MeshNodeStore interface {
 	GetMeshNodes() ([]MeshNode, error)
-	GetMeshNode(uuid string) (MeshNode, error)
-	PostMeshNode(latitude float32, longitude float32, updateId float32) error
-	PostMeshNodeData(controllerUuid string, meshNodeType string, value string, measuredAt string) error
-	PutMeshNode(uuid string, latitude float32, longitude float32) error
-	DeleteMeshNode(uuid string) error
+	GetMeshNode(id string) (MeshNode, error)
+	PostMeshNode(node MeshNode) error
+	PostMeshNodeData(meshNodeId string, data data.Data) error
+	PutMeshNode(id string, node MeshNode) error
+	DeleteMeshNode(id string) error
 }
 
 type service struct {
@@ -61,8 +64,26 @@ func (s service) getMeshNodes() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 not implemented"))
+		meshNodes, err := s.meshNodeStore.GetMeshNodes()
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// JSON-Antwort erstellen
+		response, err := json.Marshal(meshNodes)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 JSON conversion failed"))
+			return
+		}
+
+		// Antwort senden
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 	}
 }
 
@@ -83,6 +104,12 @@ func (s service) getMeshNode() http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		if meshNode.Id == "" {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("404 mesh node not found"))
 			return
 		}
 
@@ -120,7 +147,7 @@ func (s service) postMeshNode() http.HandlerFunc {
 			return
 		}
 
-		err = s.meshNodeStore.PostMeshNode(meshNode.Latitude, meshNode.Longitude, meshNode.UpdateId)
+		err = s.meshNodeStore.PostMeshNode(meshNode)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
@@ -153,7 +180,7 @@ func (s service) postMeshNodeData() http.HandlerFunc {
 		}
 
 		uuid := chi.URLParam(r, "uuid")
-		err = s.meshNodeStore.PostMeshNodeData(uuid, meshNodeData.Type, meshNodeData.Value, meshNodeData.MeasuredAt)
+		err = s.meshNodeStore.PostMeshNodeData(uuid, meshNodeData)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
@@ -177,22 +204,33 @@ func (s service) putMeshNode() http.HandlerFunc {
 
 		// Extrahiere die UUID aus dem Request-URL-Pfad
 		uuid := chi.URLParam(r, "uuid")
-		latString := r.URL.Query().Get("lat")
-		lngString := r.URL.Query().Get("lng")
+		var meshNode MeshNode
 
-		lat, _ := strconv.ParseFloat(latString, 32)
-		lng, _ := strconv.ParseFloat(lngString, 32)
+		if err := json.NewDecoder(r.Body).Decode(&meshNode); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+		/*
+			updateId := r.Body.("updateId")
+			latString := r.URL.Query().Get("latitude")
+			lonString := r.URL.Query().Get("longitude")
 
-		err := s.meshNodeStore.PutMeshNode(uuid, float32(lat), float32(lng))
-
+			lat, _ := strconv.ParseFloat(latString, 32)
+			lon, _ := strconv.ParseFloat(lonString, 32)
+			updateIdInt, _ := strconv.ParseInt(updateId, 10, 64)
+			location := Point{Lat: float32(lat), Lon: float32(lon)}
+		*/
+		err := s.meshNodeStore.PutMeshNode(uuid, meshNode)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
 			return
 		}
 
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 not implemented"))
+		// Erfolgsmeldung senden
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Data deleted successfully"))
 	}
 }
 
