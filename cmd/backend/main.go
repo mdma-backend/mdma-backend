@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mdma-backend/mdma-backend/internal/api/account"
+	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
 	"log"
 	"net/http"
 	"os"
@@ -85,7 +86,10 @@ func run() error {
 
 	r.Mount("/data", data.NewService(db))
 	r.Mount("/mesh-node", mesh_node.NewService())
-	r.Mount("/accounts", account.NewService(db))
+	r.Route("/accounts", func(r chi.Router) {
+		r.Mount("/users", account.NewService(db))
+		r.Mount("/services", service_account.NewService(db))
+	})
 
 	srv := &http.Server{
 		Addr:    ":8080",

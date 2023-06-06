@@ -2,24 +2,24 @@ package postgres
 
 import (
 	"database/sql"
-	"github.com/mdma-backend/mdma-backend/internal/api/account"
+	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
 	"strconv"
 	"time"
 )
 
-func (db DB) UserAccount(id int) (account.UserAccount, error) {
+func (db DB) ServiceAccount(id int) (service_account.ServiceAccount, error) {
 	query := `
-		SELECT id, role_id, created_at, updated_at, username
-		FROM user_account
+		SELECT id, role_id, created_at, updated_at, name
+		FROM service_account
 		WHERE id = $1
 	`
 	rows, err := db.pool.Query(query, id)
 	if err != nil {
-		return account.UserAccount{}, err
+		return service_account.ServiceAccount{}, err
 	}
 	defer rows.Close()
 
-	var userAccount account.UserAccount
+	var serviceAccount service_account.ServiceAccount
 
 	for rows.Next() {
 		var idString string
@@ -30,11 +30,11 @@ func (db DB) UserAccount(id int) (account.UserAccount, error) {
 
 		err := rows.Scan(&idString, &roleId, &createdAt, &updatedAt, &username)
 		if err != nil {
-			return account.UserAccount{}, err
+			return service_account.ServiceAccount{}, err
 		}
 		id, err := strconv.Atoi(idString)
 		if err != nil {
-			return account.UserAccount{}, err
+			return service_account.ServiceAccount{}, err
 		}
 		var updatedAtString string
 		if updatedAt.Valid {
@@ -45,36 +45,35 @@ func (db DB) UserAccount(id int) (account.UserAccount, error) {
 			roleIDString = roleId.String
 		}
 		roleIdInt, err := strconv.Atoi(roleIDString)
-		userAccount = account.UserAccount{
+		serviceAccount = service_account.ServiceAccount{
 			ID:        id,
 			RoleID:    roleIdInt,
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAtString,
 			Username:  username,
-			Password:  nil,
 		}
 	}
 
 	if err := rows.Err(); err != nil {
-		return account.UserAccount{}, err
+		return service_account.ServiceAccount{}, err
 	}
 
-	return userAccount, nil
+	return serviceAccount, nil
 
 }
 
-func (db DB) AllUserAccounts() ([]account.UserAccount, error) {
+func (db DB) AllServiceAccounts() ([]service_account.ServiceAccount, error) {
 	query := `
-		SELECT id, role_id, created_at, updated_at, username
-		FROM user_account
+		SELECT id, role_id, created_at, updated_at, name
+		FROM service_account
 	`
 	rows, err := db.pool.Query(query)
 	if err != nil {
-		return []account.UserAccount{}, err
+		return []service_account.ServiceAccount{}, err
 	}
 	defer rows.Close()
 
-	var result []account.UserAccount
+	var result []service_account.ServiceAccount
 
 	for rows.Next() {
 		var idString string
@@ -100,31 +99,31 @@ func (db DB) AllUserAccounts() ([]account.UserAccount, error) {
 			roleIDString = roleId.String
 		}
 		roleIdInt, err := strconv.Atoi(roleIDString)
-		accounts := account.UserAccount{
+		serviceAccounts := service_account.ServiceAccount{
 			ID:        id,
 			RoleID:    roleIdInt,
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAtString,
 			Username:  username,
-			Password:  nil,
 		}
-		result = append(result, accounts)
+		result = append(result, serviceAccounts)
 	}
 
 	return result, nil
 }
 
-func (db DB) CreateUserAccount(roleID int, createdAT string, username string, password []byte) error {
+func (db DB) CreateServiceAccount(roleID int, username string) error {
 	query := `
-		INSERT INTO user_account (role_id, created_at, username, password)
-		VALUES ($1, NOW(), $2, $3)
+		INSERT INTO service_account (role_id, created_at, name,token)
+		VALUES ($1, NOW(), $2,$3)
 		
 	`
+	bytes := []byte{97, 98, 99, 100, 101, 102}
 	_, err := db.pool.Exec(
 		query,
 		strconv.Itoa(roleID),
 		username,
-		password,
+		bytes,
 	)
 	if err != nil {
 		return err
@@ -133,10 +132,10 @@ func (db DB) CreateUserAccount(roleID int, createdAT string, username string, pa
 	return nil
 }
 
-func (db DB) UpdateUserAccount(id int, roleID int, username string, password []byte) (account.UserAccount, error) {
+func (db DB) UpdateServiceAccount(id int, roleID int, username string) (service_account.ServiceAccount, error) {
 	query := `
-		UPDATE user_account
-		SET role_id = $2, updated_at =$3, username = $4, password = $5
+		UPDATE service_account
+		SET role_id = $2, updated_at =$3, name = $4
 		WHERE id = $1
 	`
 	updatedAt := time.Now().Format(time.RFC3339)
@@ -146,23 +145,22 @@ func (db DB) UpdateUserAccount(id int, roleID int, username string, password []b
 		roleID,
 		updatedAt,
 		username,
-		password,
 	)
 
 	if err != nil {
-		return account.UserAccount{}, err
+		return service_account.ServiceAccount{}, err
 	}
 
-	updatedAccount, err := db.UserAccount(id)
+	updatedAccount, err := db.ServiceAccount(id)
 	if err != nil {
-		return account.UserAccount{}, err
+		return service_account.ServiceAccount{}, err
 	}
 
 	return updatedAccount, nil
 }
-func (db DB) DeleteUserAccount(id int) error {
+func (db DB) DeleteServiceAccount(id int) error {
 	query := `
-		DELETE FROM user_account WHERE id = $1;
+		DELETE FROM service_account WHERE id = $1;
 	`
 
 	_, err := db.pool.Exec(query, id)
