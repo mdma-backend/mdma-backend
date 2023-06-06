@@ -7,7 +7,7 @@ DROP TYPE IF EXISTS permission;
 
 or
 
-DROP SCHEMA IF EXISTS public;
+DROP SCHEMA IF EXISTS public CASCADE;
 */
 
 CREATE SCHEMA IF NOT EXISTS public;
@@ -43,7 +43,7 @@ CREATE TYPE permission AS ENUM (
     'service_account_create',
     'service_account_read',
     'service_account_update',
-    'service_account_delete',
+    'service_account_delete'
 );
 
 CREATE TABLE role_permission (
@@ -80,7 +80,7 @@ CREATE TABLE mesh_node_update (
 
 CREATE TABLE mesh_node (
     id UUID NOT NULL PRIMARY KEY,
-    mesh_node_update_id BIGINT REFERENCES mesh_node(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    mesh_node_update_id BIGINT REFERENCES mesh_node_update(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     location POINT NOT NULL
@@ -107,6 +107,28 @@ CREATE TABLE data (
 CREATE INDEX idx_user_account_username ON user_account (username);
 CREATE INDEX idx_data_measured_at ON data (measured_at);
 CREATE INDEX idx_mesh_node_location ON mesh_node USING GIST (location);
-CREATE INDEX idx_mesh_node_version ON mesh_node (version);
+CREATE INDEX idx_mesh_node_update_version ON mesh_node_update (version);
+
+-- Role Examples
+
+INSERT INTO "role" ("name") VALUES ('admin');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_update');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_update');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_delete');
 
 COMMIT;

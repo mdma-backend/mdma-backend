@@ -17,6 +17,7 @@ import (
 	"github.com/mdma-backend/mdma-backend/api"
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
 	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node"
+	"github.com/mdma-backend/mdma-backend/internal/api/role"
 	"github.com/mdma-backend/mdma-backend/internal/pkg/storage/postgres"
 )
 
@@ -85,6 +86,7 @@ func run() error {
 
 	r.Mount("/data", data.NewService(db))
 	r.Mount("/mesh-node", mesh_node.NewService())
+	r.Mount("/roles", role.NewService(db))
 
 	srv := &http.Server{
 		Addr:    ":8080",

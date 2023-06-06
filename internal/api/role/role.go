@@ -2,6 +2,7 @@ package role
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -29,12 +30,16 @@ type RoleStore interface {
 	DeleteRole(RoleID) error
 }
 
-type RoleID uint
+type RoleID int
 
 func IDFromString(s string) (RoleID, error) {
 	id, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, fmt.Errorf("%s is not an integer", s)
+	}
+
+	if id <= 0 {
+		return 0, errors.New("id must be greater than 0")
 	}
 
 	return RoleID(id), nil
@@ -43,9 +48,9 @@ func IDFromString(s string) (RoleID, error) {
 type Role struct {
 	ID          RoleID                  `json:"id,omitempty"`
 	CreatedAt   time.Time               `json:"createAt"`
-	UpdatedAt   time.Time               `json:"updatedAt,omitempty"`
+	UpdatedAt   *time.Time              `json:"updatedAt,omitempty"`
 	Name        string                  `json:"name"`
-	Permissions []permission.Permission `json:"permissions"`
+	Permissions []permission.Permission `json:"permissions,omitempty"`
 }
 
 type service struct {
@@ -56,7 +61,8 @@ type service struct {
 func NewService(roleStore RoleStore) http.Handler {
 	r := chi.NewRouter()
 	s := service{
-		handler: r,
+		handler:   r,
+		roleStore: roleStore,
 	}
 
 	r.Get("/", s.getRoles())
@@ -93,13 +99,13 @@ func (s service) getRole() http.HandlerFunc {
 			return
 		}
 
-		roles, err := s.roleStore.RoleByID(roleID)
+		role, err := s.roleStore.RoleByID(roleID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		render.JSON(w, r, roles)
+		render.JSON(w, r, role)
 	}
 }
 
@@ -140,6 +146,7 @@ func (s service) putRole() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		role.ID = roleID
 
 		render.JSON(w, r, role)
 	}
