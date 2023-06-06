@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mdma-backend/mdma-backend/internal/api/account"
 	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
+	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
 	"log"
 	"net/http"
 	"os"
@@ -87,7 +87,7 @@ func run() error {
 	r.Mount("/data", data.NewService(db))
 	r.Mount("/mesh-node", mesh_node.NewService())
 	r.Route("/accounts", func(r chi.Router) {
-		r.Mount("/users", account.NewService(db))
+		r.Mount("/users", user_account.NewService(db))
 		r.Mount("/services", service_account.NewService(db))
 	})
 

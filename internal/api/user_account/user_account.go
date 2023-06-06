@@ -1,4 +1,4 @@
-package account
+package user_account
 
 import (
 	"encoding/json"
@@ -80,7 +80,7 @@ func (s service) getAccountUser() http.HandlerFunc {
 		account, err := s.userStore.UserAccount(idInt)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Invalid account ID")
+			fmt.Fprintf(w, "Invalid user_account ID")
 			return
 		}
 

@@ -2,12 +2,12 @@ package postgres
 
 import (
 	"database/sql"
-	"github.com/mdma-backend/mdma-backend/internal/api/account"
+	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
 	"strconv"
 	"time"
 )
 
-func (db DB) UserAccount(id int) (account.UserAccount, error) {
+func (db DB) UserAccount(id int) (user_account.UserAccount, error) {
 	query := `
 		SELECT id, role_id, created_at, updated_at, username
 		FROM user_account
@@ -15,11 +15,11 @@ func (db DB) UserAccount(id int) (account.UserAccount, error) {
 	`
 	rows, err := db.pool.Query(query, id)
 	if err != nil {
-		return account.UserAccount{}, err
+		return user_account.UserAccount{}, err
 	}
 	defer rows.Close()
 
-	var userAccount account.UserAccount
+	var userAccount user_account.UserAccount
 
 	for rows.Next() {
 		var idString string
@@ -30,11 +30,11 @@ func (db DB) UserAccount(id int) (account.UserAccount, error) {
 
 		err := rows.Scan(&idString, &roleId, &createdAt, &updatedAt, &username)
 		if err != nil {
-			return account.UserAccount{}, err
+			return user_account.UserAccount{}, err
 		}
 		id, err := strconv.Atoi(idString)
 		if err != nil {
-			return account.UserAccount{}, err
+			return user_account.UserAccount{}, err
 		}
 		var updatedAtString string
 		if updatedAt.Valid {
@@ -45,7 +45,7 @@ func (db DB) UserAccount(id int) (account.UserAccount, error) {
 			roleIDString = roleId.String
 		}
 		roleIdInt, err := strconv.Atoi(roleIDString)
-		userAccount = account.UserAccount{
+		userAccount = user_account.UserAccount{
 			ID:        id,
 			RoleID:    roleIdInt,
 			CreatedAt: createdAt,
@@ -56,25 +56,25 @@ func (db DB) UserAccount(id int) (account.UserAccount, error) {
 	}
 
 	if err := rows.Err(); err != nil {
-		return account.UserAccount{}, err
+		return user_account.UserAccount{}, err
 	}
 
 	return userAccount, nil
 
 }
 
-func (db DB) AllUserAccounts() ([]account.UserAccount, error) {
+func (db DB) AllUserAccounts() ([]user_account.UserAccount, error) {
 	query := `
 		SELECT id, role_id, created_at, updated_at, username
 		FROM user_account
 	`
 	rows, err := db.pool.Query(query)
 	if err != nil {
-		return []account.UserAccount{}, err
+		return []user_account.UserAccount{}, err
 	}
 	defer rows.Close()
 
-	var result []account.UserAccount
+	var result []user_account.UserAccount
 
 	for rows.Next() {
 		var idString string
@@ -100,7 +100,7 @@ func (db DB) AllUserAccounts() ([]account.UserAccount, error) {
 			roleIDString = roleId.String
 		}
 		roleIdInt, err := strconv.Atoi(roleIDString)
-		accounts := account.UserAccount{
+		accounts := user_account.UserAccount{
 			ID:        id,
 			RoleID:    roleIdInt,
 			CreatedAt: createdAt,
@@ -133,7 +133,7 @@ func (db DB) CreateUserAccount(roleID int, createdAT string, username string, pa
 	return nil
 }
 
-func (db DB) UpdateUserAccount(id int, roleID int, username string, password []byte) (account.UserAccount, error) {
+func (db DB) UpdateUserAccount(id int, roleID int, username string, password []byte) (user_account.UserAccount, error) {
 	query := `
 		UPDATE user_account
 		SET role_id = $2, updated_at =$3, username = $4, password = $5
@@ -150,12 +150,12 @@ func (db DB) UpdateUserAccount(id int, roleID int, username string, password []b
 	)
 
 	if err != nil {
-		return account.UserAccount{}, err
+		return user_account.UserAccount{}, err
 	}
 
 	updatedAccount, err := db.UserAccount(id)
 	if err != nil {
-		return account.UserAccount{}, err
+		return user_account.UserAccount{}, err
 	}
 
 	return updatedAccount, nil
