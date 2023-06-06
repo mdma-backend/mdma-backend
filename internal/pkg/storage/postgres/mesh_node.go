@@ -11,7 +11,7 @@ import (
 )
 
 // GetMeshNodes Funktioniert
-func (db DB) GetMeshNodes() ([]mesh_node.MeshNode, error) {
+func (db DB) MeshNodes() ([]mesh_node.MeshNode, error) {
 	var query = `
 		SELECT *
 		FROM mesh_node
@@ -81,7 +81,7 @@ func (db DB) GetMeshNodes() ([]mesh_node.MeshNode, error) {
 }
 
 // GetMeshNode Funktioniert
-func (db DB) GetMeshNode(id string) (mesh_node.MeshNode, error) {
+func (db DB) MeshNodeById(id string) (mesh_node.MeshNode, error) {
 	query := `
 		SELECT * 
 		FROM mesh_node
@@ -152,14 +152,14 @@ func (db DB) GetMeshNode(id string) (mesh_node.MeshNode, error) {
 }
 
 // PostMeshNode Funktioniert
-func (db DB) PostMeshNode(meshNode mesh_node.MeshNode) error {
+func (db DB) CreateMeshNode(meshNode mesh_node.MeshNode) error {
 	query := `
 		INSERT INTO mesh_node 
 		(id, mesh_node_update_id, location)
-		VALUES ($1, $2, point($3, $4));
+		VALUES (gen_random_uuid (), $1, point($2, $3));
 	`
 
-	_, err := db.pool.Exec(query, meshNode.Id, strconv.Itoa(int(meshNode.UpdateId)), meshNode.Location.Lat, meshNode.Location.Lon)
+	_, err := db.pool.Exec(query, strconv.Itoa(int(meshNode.UpdateId)), meshNode.Location.Lat, meshNode.Location.Lon)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (db DB) PostMeshNode(meshNode mesh_node.MeshNode) error {
 	return nil
 }
 
-func (db DB) PostMeshNodeData(meshNodeId string, data data.Data) error {
+func (db DB) CreateMeshNodeData(meshNodeId string, data data.Data) error {
 	query := "SELECT id FROM data_type WHERE name = $1"
 
 	rows, err := db.pool.Query(query, data.Type)
@@ -192,13 +192,13 @@ func (db DB) PostMeshNodeData(meshNodeId string, data data.Data) error {
 
 	query = `
 		INSERT INTO data 
-		(id, mesh_node_id, data_type_id,measured_at,  value)
-		VALUES ($1, $2, $3, $4, $5);
+		(id, mesh_node_id, data_type_id,measured_at, value)
+		VALUES (gen_random_uuid (), $1, $2, $3, $4);
 	`
 
 	//createdTime, _ := time.Parse(time.RFC3339, time.Now().String())
 
-	_, err = db.pool.Exec(query, data.UUID, meshNodeId, dataTypeId, data.MeasuredAt, data.Value)
+	_, err = db.pool.Exec(query, meshNodeId, dataTypeId, data.MeasuredAt, data.Value)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func (db DB) PostMeshNodeData(meshNodeId string, data data.Data) error {
 }
 
 // PutMeshNode Funktioniert
-func (db DB) PutMeshNode(id string, meshNode mesh_node.MeshNode) error {
+func (db DB) UpdateMeshNode(id string, meshNode mesh_node.MeshNode) error {
 	query := `
 		UPDATE mesh_node 
 		SET mesh_node_update_id = $2,  updated_at = $3,  location = point($4, $5)

@@ -21,11 +21,11 @@ type MeshNode struct {
 }
 
 type MeshNodeStore interface {
-	GetMeshNodes() ([]MeshNode, error)
-	GetMeshNode(id string) (MeshNode, error)
-	PostMeshNode(node MeshNode) error
-	PostMeshNodeData(meshNodeId string, data data.Data) error
-	PutMeshNode(id string, node MeshNode) error
+	MeshNodes() ([]MeshNode, error)
+	MeshNodeById(id string) (MeshNode, error)
+	CreateMeshNode(node MeshNode) error
+	CreateMeshNodeData(meshNodeId string, data data.Data) error
+	UpdateMeshNode(id string, node MeshNode) error
 	DeleteMeshNode(id string) error
 }
 
@@ -64,7 +64,7 @@ func (s service) getMeshNodes() http.HandlerFunc {
 			return
 		}
 
-		meshNodes, err := s.meshNodeStore.GetMeshNodes()
+		meshNodes, err := s.meshNodeStore.MeshNodes()
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -100,7 +100,7 @@ func (s service) getMeshNode() http.HandlerFunc {
 		uuid := chi.URLParam(r, "uuid")
 
 		// Daten aus der Datenbank abrufen
-		meshNode, err := s.meshNodeStore.GetMeshNode(uuid)
+		meshNode, err := s.meshNodeStore.MeshNodeById(uuid)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
@@ -147,7 +147,7 @@ func (s service) postMeshNode() http.HandlerFunc {
 			return
 		}
 
-		err = s.meshNodeStore.PostMeshNode(meshNode)
+		err = s.meshNodeStore.CreateMeshNode(meshNode)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
@@ -156,7 +156,7 @@ func (s service) postMeshNode() http.HandlerFunc {
 
 		// Sende eine Erfolgsantwort zurück
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("POST request successful"))
+		w.Write([]byte("Mesh node - POST request successful"))
 	}
 }
 
@@ -180,7 +180,7 @@ func (s service) postMeshNodeData() http.HandlerFunc {
 		}
 
 		uuid := chi.URLParam(r, "uuid")
-		err = s.meshNodeStore.PostMeshNodeData(uuid, meshNodeData)
+		err = s.meshNodeStore.CreateMeshNodeData(uuid, meshNodeData)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
@@ -189,7 +189,7 @@ func (s service) postMeshNodeData() http.HandlerFunc {
 
 		// Sende eine Erfolgsantwort zurück
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("POST request successful"))
+		w.Write([]byte("Mesh node data - POST request successful"))
 	}
 }
 
@@ -221,7 +221,7 @@ func (s service) putMeshNode() http.HandlerFunc {
 			updateIdInt, _ := strconv.ParseInt(updateId, 10, 64)
 			location := Point{Lat: float32(lat), Lon: float32(lon)}
 		*/
-		err := s.meshNodeStore.PutMeshNode(uuid, meshNode)
+		err := s.meshNodeStore.UpdateMeshNode(uuid, meshNode)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
@@ -230,7 +230,7 @@ func (s service) putMeshNode() http.HandlerFunc {
 
 		// Erfolgsmeldung senden
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Data deleted successfully"))
+		w.Write([]byte("Mesh node - PUT request successful"))
 	}
 }
 
@@ -255,6 +255,6 @@ func (s service) deleteMeshNode() http.HandlerFunc {
 
 		// Erfolgsmeldung senden
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Data deleted successfully"))
+		w.Write([]byte("Mesh node - DELETE request successful"))
 	}
 }
