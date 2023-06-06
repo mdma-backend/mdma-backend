@@ -155,7 +155,7 @@ func (s service) postMeshNode() http.HandlerFunc {
 		}
 
 		// Sende eine Erfolgsantwort zurück
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("Mesh node - POST request successful"))
 	}
 }
@@ -188,7 +188,7 @@ func (s service) postMeshNodeData() http.HandlerFunc {
 		}
 
 		// Sende eine Erfolgsantwort zurück
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("Mesh node data - POST request successful"))
 	}
 }
@@ -229,7 +229,7 @@ func (s service) putMeshNode() http.HandlerFunc {
 		}
 
 		// Erfolgsmeldung senden
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte("Mesh node - PUT request successful"))
 	}
 }
