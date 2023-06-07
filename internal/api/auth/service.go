@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/mdma-backend/mdma-backend/internal/types"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -45,17 +46,17 @@ type Argon2IDService struct {
 	KeyLen  uint32
 }
 
-func (s Argon2IDService) Hash(password string) (Hash, Salt, error) {
+func (s Argon2IDService) Hash(password string) (types.Hash, types.Salt, error) {
 	salt := make([]byte, s.SaltLen)
 	if _, err := rand.Read(salt); err != nil {
 		return nil, nil, err
 	}
 
 	hash := argon2.IDKey([]byte(password), salt, s.Time, s.Memory, s.Threads, s.KeyLen)
-	return Hash(hash), Salt(salt), nil
+	return types.Hash(hash), types.Salt(salt), nil
 }
 
-func (s Argon2IDService) HashAndCompare(password string, hash Hash, salt Salt) bool {
+func (s Argon2IDService) HashAndCompare(password string, hash types.Hash, salt types.Salt) bool {
 	pwHash := argon2.IDKey([]byte(password), salt, s.Time, s.Memory, s.Threads, s.KeyLen)
 	return bytes.Equal(hash, pwHash)
 }

@@ -25,4 +25,41 @@ const (
 	ServiceAccountRead   Permission = "service_account_read"
 	ServiceAccountUpdate Permission = "service_account_update"
 	ServiceAccountDelete Permission = "service_account_delete"
+
+	RoleCreate Permission = "role_create"
+	RoleRead   Permission = "role_read"
+	RoleUpdate Permission = "role_update"
+	RoleDelete Permission = "role_delete"
 )
+
+func Permissions() []Permission {
+	return []Permission{
+		MeshNodeCreate,
+		MeshNodeRead,
+		MeshNodeUpdate,
+		MeshNodeDelete,
+
+		MeshNodeUpdateCreate,
+		MeshNodeUpdateRead,
+		MeshNodeUpdateDelete,
+
+		DataCreate,
+		DataRead,
+		DataDelete,
+
+		UserAccountCreate,
+		UserAccountRead,
+		UserAccountUpdate,
+		UserAccountDelete,
+
+		ServiceAccountCreate,
+		ServiceAccountRead,
+		ServiceAccountUpdate,
+		ServiceAccountDelete,
+
+		RoleCreate,
+		RoleRead,
+		RoleUpdate,
+		RoleDelete,
+	}
+}

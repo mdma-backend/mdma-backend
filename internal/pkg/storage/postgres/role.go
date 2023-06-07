@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mdma-backend/mdma-backend/internal/api/role"
+	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
-func (db DB) RoleByID(roleID role.RoleID) (role.Role, error) {
-	var r role.Role
+func (db DB) RoleByID(roleID types.RoleID) (types.Role, error) {
+	var r types.Role
 	var perms []byte
 	if err := db.pool.QueryRow(`
 SELECT r.id, r.created_at, r.updated_at, r.name, json_agg(rp.permission) AS permissions
@@ -28,7 +28,7 @@ GROUP BY r.id;
 	return r, nil
 }
 
-func (db DB) Roles() ([]role.Role, error) {
+func (db DB) Roles() ([]types.Role, error) {
 	rows, err := db.pool.Query(`
 SELECT id, created_at, updated_at, name
 FROM role;
@@ -38,9 +38,9 @@ FROM role;
 	}
 	defer rows.Close()
 
-	var roles []role.Role
+	var roles []types.Role
 	for rows.Next() {
-		var r role.Role
+		var r types.Role
 		if err := rows.Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name); err != nil {
 			return nil, err
 		}
@@ -50,7 +50,7 @@ FROM role;
 	return roles, nil
 }
 
-func (db DB) CreateRole(role *role.Role) error {
+func (db DB) CreateRole(role *types.Role) error {
 	query := `
 WITH new_role AS (
 	INSERT INTO role (name)
@@ -96,7 +96,7 @@ WHERE name = $1;
 	return nil
 }
 
-func (db DB) UpdateRole(roleID role.RoleID, role *role.Role) error {
+func (db DB) UpdateRole(roleID types.RoleID, role *types.Role) error {
 	tx, err := db.pool.BeginTx(context.Background(), nil)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ WHERE role_id = $1;
 	return tx.Commit()
 }
 
-func (db DB) DeleteRole(roleID role.RoleID) error {
+func (db DB) DeleteRole(roleID types.RoleID) error {
 	_, err := db.pool.Exec(`
 DELETE FROM role
 WHERE id = $1;

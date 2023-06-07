@@ -3,12 +3,11 @@ package postgres
 import (
 	"encoding/json"
 
-	"github.com/mdma-backend/mdma-backend/internal/api/auth"
-	"github.com/mdma-backend/mdma-backend/internal/api/role"
+	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
-func (db DB) RoleByUsername(username string) (role.Role, error) {
-	var r role.Role
+func (db DB) RoleByUsername(username string) (types.Role, error) {
+	var r types.Role
 	var perms []byte
 	if err := db.pool.QueryRow(`
 SELECT r.id, r.created_at, r.updated_at, r.name, json_agg(rp.permission) AS permissions
@@ -28,9 +27,9 @@ GROUP BY r.id;
 	return r, nil
 }
 
-func (db DB) PasswordHashAndSaltByUsername(username string) (auth.Hash, auth.Salt, error) {
-	var hash auth.Hash
-	var salt auth.Salt
+func (db DB) PasswordHashAndSaltByUsername(username string) (types.Hash, types.Salt, error) {
+	var hash types.Hash
+	var salt types.Salt
 	if err := db.pool.QueryRow(`
 SELECT password, salt
 FROM user_account

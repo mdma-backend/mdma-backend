@@ -2,20 +2,19 @@ package role
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/mdma-backend/mdma-backend/internal/api/role/permission"
+	"github.com/mdma-backend/mdma-backend/internal/api/auth"
+	"github.com/mdma-backend/mdma-backend/internal/types"
+	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 type ErrNotFound struct {
 	Err    error
-	RoleID RoleID
+	RoleID types.RoleID
 }
 
 func (e ErrNotFound) Error() string {
@@ -23,34 +22,11 @@ func (e ErrNotFound) Error() string {
 }
 
 type RoleStore interface {
-	RoleByID(RoleID) (Role, error)
-	Roles() ([]Role, error)
-	CreateRole(*Role) error
-	UpdateRole(RoleID, *Role) error
-	DeleteRole(RoleID) error
-}
-
-type RoleID int
-
-func IDFromString(s string) (RoleID, error) {
-	id, err := strconv.Atoi(s)
-	if err != nil {
-		return 0, fmt.Errorf("%s is not an integer", s)
-	}
-
-	if id <= 0 {
-		return 0, errors.New("id must be greater than 0")
-	}
-
-	return RoleID(id), nil
-}
-
-type Role struct {
-	ID          RoleID                  `json:"id,omitempty"`
-	CreatedAt   time.Time               `json:"createAt"`
-	UpdatedAt   *time.Time              `json:"updatedAt,omitempty"`
-	Name        string                  `json:"name"`
-	Permissions []permission.Permission `json:"permissions,omitempty"`
+	RoleByID(types.RoleID) (types.Role, error)
+	Roles() ([]types.Role, error)
+	CreateRole(*types.Role) error
+	UpdateRole(types.RoleID, *types.Role) error
+	DeleteRole(types.RoleID) error
 }
 
 type service struct {
@@ -65,11 +41,13 @@ func NewService(roleStore RoleStore) http.Handler {
 		roleStore: roleStore,
 	}
 
-	r.Get("/", s.getRoles())
-	r.Get("/{id}", s.getRole())
-	r.Post("/", s.postRole())
-	r.Put("/{id}", s.putRole())
-	r.Delete("/{id}", s.deleteRole())
+	r.Get("/", auth.RestrictHandlerFunc(s.getRoles(), permission.RoleRead))
+	r.Get("/{id}", auth.RestrictHandlerFunc(s.getRole(), permission.RoleRead))
+	r.Post("/", auth.RestrictHandlerFunc(s.postRole(), permission.RoleCreate))
+	r.Put("/{id}", auth.RestrictHandlerFunc(s.putRole(), permission.RoleUpdate))
+	r.Delete("/{id}", auth.RestrictHandlerFunc(s.deleteRole(), permission.RoleDelete))
+
+	r.Get("/permissions", auth.RestrictHandlerFunc(getPermissions(), permission.RoleCreate))
 
 	return s
 }
@@ -93,7 +71,7 @@ func (s service) getRoles() http.HandlerFunc {
 func (s service) getRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		roleID, err := IDFromString(id)
+		roleID, err := types.RoleIDFromString(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -111,7 +89,7 @@ func (s service) getRole() http.HandlerFunc {
 
 func (s service) postRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var role Role
+		var role types.Role
 		if err := json.NewDecoder(r.Body).Decode(&role); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -130,13 +108,13 @@ func (s service) postRole() http.HandlerFunc {
 func (s service) putRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		roleID, err := IDFromString(id)
+		roleID, err := types.RoleIDFromString(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		var role Role
+		var role types.Role
 		if err := json.NewDecoder(r.Body).Decode(&role); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -155,7 +133,7 @@ func (s service) putRole() http.HandlerFunc {
 func (s service) deleteRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		roleID, err := IDFromString(id)
+		roleID, err := types.RoleIDFromString(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -167,5 +145,11 @@ func (s service) deleteRole() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func getPermissions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		render.JSON(w, r, permission.Permissions())
 	}
 }

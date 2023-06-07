@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/mdma-backend/mdma-backend/api"
 	"github.com/mdma-backend/mdma-backend/internal/api/auth"
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
@@ -57,9 +58,20 @@ func main() {
 }
 
 func run() error {
+	docsPath := "/docs"
+	openAPIPath := docsPath + "/swagger.yaml"
+	loginPath := "/login"
+	tokenService := auth.JWTService{
+		Secret:        []byte("change_me"),
+		SigningMethod: jwt.SigningMethodHS256,
+		Leeway:        5 * time.Second,
+	}
+
 	r := chi.NewRouter()
-	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(auth.Middleware(tokenService, "/", docsPath, openAPIPath, loginPath))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"*"},
@@ -68,11 +80,9 @@ func run() error {
 	}))
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/docs", http.StatusFound)
+		http.Redirect(w, r, docsPath, http.StatusFound)
 	})
 
-	docsPath := "/docs"
-	openAPIPath := filepath.Join(docsPath + "/swagger.yaml")
 	r.Handle(docsPath, api.SwaggerUIHandler(api.SwaggerUIOpts{
 		Path:    docsPath,
 		SpecURL: openAPIPath,
@@ -89,12 +99,18 @@ func run() error {
 	r.Mount("/mesh-node", mesh_node.NewService())
 	r.Mount("/roles", role.NewService(db))
 
-	tokenService := auth.JWTService{
-		Secret: []byte("change_me"),
+	hashService := auth.Argon2IDService{
+		SaltLen: 32,
+		Time:    1,
+		Memory:  64 * 1024, // 64 MB
+		Threads: 4,
+		KeyLen:  32,
 	}
-	hashService := auth.Argon2IDService{}
 
-	r.Post("/login", auth.LoginHandler(db, tokenService, hashService))
+	hash, salt, err := hashService.Hash("password123")
+	fmt.Printf("hash=%s salt=%s err=%v", base64.StdEncoding.EncodeToString(hash), base64.StdEncoding.EncodeToString(salt), err)
+
+	r.Post(loginPath, auth.LoginHandler(db, tokenService, hashService))
 	r.Delete("/logout", auth.LogoutHandler())
 
 	srv := &http.Server{

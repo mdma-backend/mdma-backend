@@ -7,15 +7,15 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/mdma-backend/mdma-backend/internal/api/role"
-	"github.com/mdma-backend/mdma-backend/internal/api/role/permission"
+	"github.com/mdma-backend/mdma-backend/internal/types"
+	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 const authCookieName = "token"
 
 type HashService interface {
-	Hash(string) (Hash, Salt, error)
-	HashAndCompare(string, Hash, Salt) bool
+	Hash(string) (types.Hash, types.Salt, error)
+	HashAndCompare(string, types.Hash, types.Salt) bool
 }
 
 type TokenService interface {
@@ -30,14 +30,9 @@ type Claims struct {
 }
 
 type AuthStore interface {
-	RoleByUsername(string) (role.Role, error)
-	PasswordHashAndSaltByUsername(string) (Hash, Salt, error)
+	RoleByUsername(string) (types.Role, error)
+	PasswordHashAndSaltByUsername(string) (types.Hash, types.Salt, error)
 }
-
-type (
-	Hash []byte
-	Salt []byte
-)
 
 type Credentials struct {
 	Username string `json:"username"`
