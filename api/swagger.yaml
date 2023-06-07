@@ -709,7 +709,6 @@ components:
       type: string
       example: sensor_data_read
         
-
     MeshNode:
       type: object
       properties:

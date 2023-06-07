@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/mdma-backend/mdma-backend/api"
+	"github.com/mdma-backend/mdma-backend/internal/api/auth"
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
 	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node"
 	"github.com/mdma-backend/mdma-backend/internal/api/role"
@@ -56,11 +57,6 @@ func main() {
 }
 
 func run() error {
-	db, err := postgres.New(databaseDSN)
-	if err != nil {
-		return fmt.Errorf("connecting to postgres: %w", err)
-	}
-
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
@@ -84,9 +80,22 @@ func run() error {
 	}))
 	r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
 
+	db, err := postgres.New(databaseDSN)
+	if err != nil {
+		return fmt.Errorf("connecting to postgres: %w", err)
+	}
+
 	r.Mount("/data", data.NewService(db))
 	r.Mount("/mesh-node", mesh_node.NewService())
 	r.Mount("/roles", role.NewService(db))
+
+	tokenService := auth.JWTService{
+		Secret: []byte("change_me"),
+	}
+	hashService := auth.Argon2IDService{}
+
+	r.Post("/login", auth.LoginHandler(db, tokenService, hashService))
+	r.Delete("/logout", auth.LogoutHandler())
 
 	srv := &http.Server{
 		Addr:    ":8080",

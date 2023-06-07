@@ -9,4 +9,10 @@ require (
 	github.com/lib/pq v1.10.9
 )
 
-require github.com/ajg/form v1.5.1 // indirect
+require golang.org/x/sys v0.8.0 // indirect
+
+require (
+	github.com/ajg/form v1.5.1 // indirect
+	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
+	golang.org/x/crypto v0.9.0
+)

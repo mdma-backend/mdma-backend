@@ -58,7 +58,8 @@ CREATE TABLE user_account (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     username VARCHAR(120) NOT NULL,
-    password BYTEA NOT NULL
+    password BYTEA NOT NULL,
+    salt BYTEA NOT NULL
 );
 
 CREATE TABLE service_account (
