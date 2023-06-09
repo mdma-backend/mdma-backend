@@ -115,8 +115,44 @@ CREATE INDEX idx_data_measured_at ON data (measured_at);
 CREATE INDEX idx_mesh_node_location ON mesh_node USING GIST (location);
 CREATE INDEX idx_mesh_node_update_version ON mesh_node_update (version);
 
--- Role Examples
+-- Controller 
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('a53b3f71-f073-4578-9557-92fd19d93bb9', NULL, now(), NULL, '1,1');
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('c33ea7b6-68a7-4bc6-b1e9-0c365db74081', NULL, now(), NULL, '2,2');
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('f1aef837-04ac-4316-ae1f-0465bc2eb2fa', NULL, now(), NULL, '23,2');
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('a8957622-acc5-4ddb-bb1f-17e63d3a514f', NULL, now(), NULL, '2,2');
 
+-- Datatype
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'temperature_dummy');
+INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'humidity_dummy');
+
+-- Data Controller 1
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('c08fd9d6-0ecb-4932-8156-6c31cf885b46', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-06-02T00:46:16+02:00', '12');
+
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('3254f1ed-135d-47fc-8acc-4d97862b55a8', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-06-01T00:46:16+02:00', '32');
+
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('ee38b09b-692d-4e7c-bed8-287aea55e573', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-05-30T00:46:16+02:00', '34');
+
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('4fec4425-5a90-492b-addd-acbedcb6e616', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '2', now(), '2023-05-29T00:46:16+02:00', '12');
+
+-- Data Controller 2
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('d38f7c02-8477-499e-b2f3-c38bbba0a2dd', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '2', now(), '2023-05-28T00:46:16+02:00', '7');
+
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('0f8601a5-e545-4d38-97af-63350e7f99c2', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), '2023-05-27T00:46:16+02:00', '23');
+
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('9fa74669-1423-4979-9c52-ff34477d263c', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), '2023-05-26T00:46:16+02:00', '41');
+
+-- Data Controller 3
+INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
+VALUES ('d3d5fcff-2eef-4170-9e8e-fb63a5975a42', 'f1aef837-04ac-4316-ae1f-0465bc2eb2fa', '1', now(), '2023-05-25T00:46:16+02:00', '12');
+
+-- Role Examples
 INSERT INTO "role" ("name") VALUES ('admin');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_create');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_read');
@@ -142,42 +178,5 @@ INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_updat
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_delete');
 
 INSERT INTO "user_account" ("role_id", "username", "password", "salt") VALUES ('1', 'H4r4ldD3rH4ck3r', decode('7g5FK95ihY7C7KuZAcyA4r8+pFyg7rFEfadWoWREp1w=', 'base64'), decode('V0P7HrHEEm7Q1F0VLPMbt1BHBFtKLCFJMnhZJivV5Ms=', 'base64'));
-
--- Controller 
-INSERT INTO "controller" ("id", "update_id", "created_at", "updated_at", "location") VALUES ('a53b3f71-f073-4578-9557-92fd19d93bb9', NULL, now(), NULL, '1,1');
-INSERT INTO "controller" ("id", "update_id", "created_at", "updated_at", "location") VALUES ('c33ea7b6-68a7-4bc6-b1e9-0c365db74081', NULL, now(), NULL, '2,2');
-INSERT INTO "controller" ("id", "update_id", "created_at", "updated_at", "location") VALUES ('f1aef837-04ac-4316-ae1f-0465bc2eb2fa', NULL, now(), NULL, '23,2');
-INSERT INTO "controller" ("id", "update_id", "created_at", "updated_at", "location") VALUES ('a8957622-acc5-4ddb-bb1f-17e63d3a514f', NULL, now(), NULL, '2,2');
-
--- Datatype
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'temperature_dummy');
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'humidity_dummy');
-
--- Data Controller 1
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('c08fd9d6-0ecb-4932-8156-6c31cf885b46', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-06-02T00:46:16+02:00', '12');
-
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('3254f1ed-135d-47fc-8acc-4d97862b55a8', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-06-01T00:46:16+02:00', '32');
-
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('ee38b09b-692d-4e7c-bed8-287aea55e573', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '1', now(), '2023-05-30T00:46:16+02:00', '34');
-
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('4fec4425-5a90-492b-addd-acbedcb6e616', 'a53b3f71-f073-4578-9557-92fd19d93bb9', '2', now(), '2023-05-29T00:46:16+02:00', '12');
-
--- Data Controller 2
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('d38f7c02-8477-499e-b2f3-c38bbba0a2dd', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '2', now(), '2023-05-28T00:46:16+02:00', '7');
-
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('0f8601a5-e545-4d38-97af-63350e7f99c2', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), '2023-05-27T00:46:16+02:00', '23');
-
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('9fa74669-1423-4979-9c52-ff34477d263c', 'c33ea7b6-68a7-4bc6-b1e9-0c365db74081', '1', now(), '2023-05-26T00:46:16+02:00', '41');
-
--- Data Controller 3
-INSERT INTO "data" ("id", "controller_id", "data_type_id", "created_at", "measured_at", "value") 
-VALUES ('d3d5fcff-2eef-4170-9e8e-fb63a5975a42', 'f1aef837-04ac-4316-ae1f-0465bc2eb2fa', '1', now(), '2023-05-25T00:46:16+02:00', '12');
 
 COMMIT;

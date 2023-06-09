@@ -99,7 +99,7 @@ func run() error {
 	}
 
 	r.Mount("/data", data.NewService(db))
-	r.Mount("/mesh-node", mesh_node.NewService())
+	r.Mount("/mesh-nodes", mesh_node.NewService(db))
 	r.Route("/accounts", func(r chi.Router) {
 		r.Mount("/users", user_account.NewService(db))
 		r.Mount("/services", service_account.NewService(db))
