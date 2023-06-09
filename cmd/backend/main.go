@@ -5,13 +5,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
-	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
+	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
