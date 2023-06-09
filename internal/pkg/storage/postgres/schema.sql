@@ -43,7 +43,12 @@ CREATE TYPE permission AS ENUM (
     'service_account_create',
     'service_account_read',
     'service_account_update',
-    'service_account_delete'
+    'service_account_delete',
+
+    'role_create',
+    'role_read',
+    'role_update',
+    'role_delete'
 );
 
 CREATE TABLE role_permission (
@@ -58,7 +63,8 @@ CREATE TABLE user_account (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     username VARCHAR(120) NOT NULL,
-    password BYTEA NOT NULL
+    password BYTEA NOT NULL,
+    salt BYTEA NOT NULL
 );
 
 CREATE TABLE service_account (
@@ -145,5 +151,32 @@ VALUES ('9fa74669-1423-4979-9c52-ff34477d263c', 'c33ea7b6-68a7-4bc6-b1e9-0c365db
 -- Data Controller 3
 INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
 VALUES ('d3d5fcff-2eef-4170-9e8e-fb63a5975a42', 'f1aef837-04ac-4316-ae1f-0465bc2eb2fa', '1', now(), '2023-05-25T00:46:16+02:00', '12');
+-- Role Examples
+
+INSERT INTO "role" ("name") VALUES ('admin');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_update');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'user_account_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_update');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'service_account_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_create');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_read');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_update');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_delete');
+
+INSERT INTO "user_account" ("role_id", "username", "password", "salt") VALUES ('1', 'H4r4ldD3rH4ck3r', decode('7g5FK95ihY7C7KuZAcyA4r8+pFyg7rFEfadWoWREp1w=', 'base64'), decode('V0P7HrHEEm7Q1F0VLPMbt1BHBFtKLCFJMnhZJivV5Ms=', 'base64'));
 
 COMMIT;
