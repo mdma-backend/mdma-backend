@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mdma-backend/mdma-backend/internal/api/auth"
+	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 type ServiceUserStore interface {
@@ -37,11 +39,11 @@ func NewService(serviceUserStore ServiceUserStore) http.Handler {
 		serviceUserStore: serviceUserStore,
 	}
 
-	r.Get("/{id}", s.getAccountService())
-	r.Get("/", s.getAllService())
-	r.Post("/", s.createAccountService())
-	r.Put("/{id}", s.updateAccountService())
-	r.Delete("/{id}", s.deleteAccountService())
+	r.Get("/{id}", auth.RestrictHandlerFunc(s.getAccountService(), permission.ServiceAccountRead))
+	r.Get("/", auth.RestrictHandlerFunc(s.getAllService(), permission.ServiceAccountRead))
+	r.Post("/", auth.RestrictHandlerFunc(s.createAccountService(), permission.ServiceAccountCreate))
+	r.Put("/{id}", auth.RestrictHandlerFunc(s.updateAccountService(), permission.ServiceAccountUpdate))
+	r.Delete("/{id}", auth.RestrictHandlerFunc(s.deleteAccountService(), permission.ServiceAccountDelete))
 
 	return s
 }
