@@ -265,7 +265,7 @@ paths:
         400:
           description: Bad Request.
   /logout:
-    post:
+    delete:
       tags:
         - User-Accounts
         - Login
@@ -600,7 +600,7 @@ components:
           example: H4r4ldD3rH4ck3r
         password:
           type: string
-          example: changeme
+          example: password123
 
     Token:
       type: object
@@ -696,9 +696,7 @@ components:
           type: array
           items:
             type: string
-            example:
-              - controller_create
-              - sensor_data_read
+            example: mesh_node_create
 
     GetRole:
       allOf:
@@ -709,7 +707,6 @@ components:
       type: string
       example: sensor_data_read
         
-
     MeshNode:
       type: object
       properties:
