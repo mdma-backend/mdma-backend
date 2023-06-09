@@ -11,6 +11,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
+	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -97,6 +100,10 @@ func run() error {
 
 	r.Mount("/data", data.NewService(db))
 	r.Mount("/mesh-nodes", mesh_node.NewService(db))
+	r.Route("/accounts", func(r chi.Router) {
+		r.Mount("/users", user_account.NewService(db))
+		r.Mount("/services", service_account.NewService(db))
+	})
 	r.Mount("/roles", role.NewService(db))
 
 	hashService := auth.Argon2IDService{

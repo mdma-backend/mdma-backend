@@ -151,8 +151,8 @@ VALUES ('9fa74669-1423-4979-9c52-ff34477d263c', 'c33ea7b6-68a7-4bc6-b1e9-0c365db
 -- Data Controller 3
 INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
 VALUES ('d3d5fcff-2eef-4170-9e8e-fb63a5975a42', 'f1aef837-04ac-4316-ae1f-0465bc2eb2fa', '1', now(), '2023-05-25T00:46:16+02:00', '12');
--- Role Examples
 
+-- Role Examples
 INSERT INTO "role" ("name") VALUES ('admin');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_create');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_read');
