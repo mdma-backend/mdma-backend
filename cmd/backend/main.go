@@ -74,13 +74,17 @@ func run() error {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
-	r.Use(auth.Middleware(tokenService, "/", docsPath, openAPIPath, loginPath))
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"*"},
-		AllowedHeaders:   []string{"*"},
+		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
+		AllowedOrigins: []string{"https://*", "http://*"},
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
+	r.Use(auth.Middleware(tokenService, "/", docsPath, openAPIPath, loginPath))
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, docsPath, http.StatusFound)
