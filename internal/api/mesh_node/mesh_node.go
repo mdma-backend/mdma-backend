@@ -2,9 +2,12 @@ package mesh_node
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	"github.com/mdma-backend/mdma-backend/internal/api/data"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/mdma-backend/mdma-backend/internal/api/auth"
+	"github.com/mdma-backend/mdma-backend/internal/api/data"
+	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 type Point struct {
@@ -41,12 +44,12 @@ func NewService(store MeshNodeStore) http.Handler {
 		meshNodeStore: store,
 	}
 
-	r.Get("/", s.getMeshNodes())
-	r.Get("/{uuid}", s.getMeshNode())
-	r.Post("/", s.postMeshNode())
-	r.Post("/{uuid}/data", s.postMeshNodeData())
-	r.Put("/{uuid}", s.putMeshNode())
-	r.Delete("/{uuid}", s.deleteMeshNode())
+	r.Get("/", auth.RestrictHandlerFunc(s.getMeshNodes(), permission.MeshNodeRead))
+	r.Get("/{uuid}", auth.RestrictHandlerFunc(s.getMeshNode(), permission.MeshNodeRead))
+	r.Post("/", auth.RestrictHandlerFunc(s.postMeshNode(), permission.MeshNodeCreate))
+	r.Post("/{uuid}/data", auth.RestrictHandlerFunc(s.postMeshNodeData(), permission.DataCreate))
+	r.Put("/{uuid}", auth.RestrictHandlerFunc(s.putMeshNode(), permission.MeshNodeUpdate))
+	r.Delete("/{uuid}", auth.RestrictHandlerFunc(s.deleteMeshNode(), permission.MeshNodeDelete))
 
 	return s
 }
