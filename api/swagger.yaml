@@ -109,7 +109,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PostData"
+              type: array
+              items:
+                $ref: "#/components/schemas/PostData"
       responses:
         201:
           description: Created.
