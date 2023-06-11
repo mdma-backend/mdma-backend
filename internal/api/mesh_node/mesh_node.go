@@ -28,6 +28,7 @@ type MeshNodeStore interface {
 	MeshNodeById(id string) (MeshNode, error)
 	CreateMeshNode(node MeshNode) error
 	CreateMeshNodeData(meshNodeId string, data data.Data) error
+	CreateManyMeshNodeData(meshNodeId string, data []data.Data) error
 	UpdateMeshNode(id string, node MeshNode) error
 	DeleteMeshNode(id string) error
 }
@@ -48,6 +49,7 @@ func NewService(store MeshNodeStore) http.Handler {
 	r.Get("/{uuid}", auth.RestrictHandlerFunc(s.getMeshNode(), permission.MeshNodeRead))
 	r.Post("/", auth.RestrictHandlerFunc(s.postMeshNode(), permission.MeshNodeCreate))
 	r.Post("/{uuid}/data", auth.RestrictHandlerFunc(s.postMeshNodeData(), permission.DataCreate))
+	r.Post("/{uuid}/data-list", auth.RestrictHandlerFunc(s.postManyMeshNodeData(), permission.DataCreate))
 	r.Put("/{uuid}", auth.RestrictHandlerFunc(s.putMeshNode(), permission.MeshNodeUpdate))
 	r.Delete("/{uuid}", auth.RestrictHandlerFunc(s.deleteMeshNode(), permission.MeshNodeDelete))
 
@@ -193,6 +195,39 @@ func (s service) postMeshNodeData() http.HandlerFunc {
 		// Sende eine Erfolgsantwort zurück
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("Mesh node data - POST request successful"))
+	}
+}
+
+func (s service) postManyMeshNodeData() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("405 Method not allowed"))
+
+			return
+		}
+
+		// Dekodiere den JSON-Body der Anfrage in ein Payload-Objekt
+		var meshNodeData []data.Data
+		err := json.NewDecoder(r.Body).Decode(&meshNodeData)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("400 Invalid request payload"))
+
+			return
+		}
+
+		uuid := chi.URLParam(r, "uuid")
+		err = s.meshNodeStore.CreateManyMeshNodeData(uuid, meshNodeData)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		// Sende eine Erfolgsantwort zurück
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte("Many mesh node data - POST request successful"))
 	}
 }
 
