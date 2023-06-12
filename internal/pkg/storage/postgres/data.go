@@ -9,8 +9,8 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
 )
 
-func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string, sampleDuration string, sampleCount int, aggregateFunction string) (data.AggregatedData, error) {
-	timeStamps, err := identifyTimeStamps(measuredStart, measuredEnd, sampleDuration, sampleCount)
+func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, startTime time.Time, endTime time.Time, sampleTime time.Duration, sampleCount int, aggregateFunction string) (data.AggregatedData, error) {
+	timeStamps, err := identifyTimeStamps(startTime, endTime, sampleTime, sampleCount)
 	if err != nil {
 		return data.AggregatedData{}, err
 	}
@@ -32,42 +32,21 @@ func (db DB) GetAggregatedData(dataType string, meshNodeUUIDs []string, measured
 	return aggregatedData, nil
 }
 
-func identifyTimeStamps(measuredStart string, measuredEnd string, sampleDuration string, sampleCount int) ([]time.Time, error) {
-	var startTime time.Time
-	var endTime time.Time
-
-	if measuredStart != time.Unix(0, 0).String() {
-		var err error
-		startTime, err = time.Parse(time.RFC3339, measuredStart)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if measuredEnd != time.Unix(0, 0).String() {
-		var err error
-		endTime, err = time.Parse(time.RFC3339, measuredEnd)
-		if err != nil {
-			return nil, err
-		}
+func identifyTimeStamps(startTime time.Time, endTime time.Time, sampleTime time.Duration, sampleCount int) ([]time.Time, error) {
+	if endTime == time.Unix(0, 0) {
+		endTime = time.Now()
 	}
 
 	duration := endTime.Sub(startTime)
 	intervals := sampleCount
-	sampleTime := time.Duration(0)
 
-	if sampleDuration != "" {
-		var err error
-		sampleTime, err = time.ParseDuration(sampleDuration)
-		if err != nil {
-			return nil, err
-		}
-
+	if sampleTime != time.Duration(0) {
 		intervals = int(duration / sampleTime)
 	} else {
 		sampleTime = duration / time.Duration(sampleCount)
 	}
-	var timeStamps []time.Time
 
+	var timeStamps []time.Time
 	for i := 0; i <= intervals; i++ {
 		timestamp := startTime.Add(sampleTime * time.Duration(i))
 		timeStamps = append(timeStamps, timestamp)
@@ -78,20 +57,21 @@ func identifyTimeStamps(measuredStart string, measuredEnd string, sampleDuration
 
 func createQuery(dataType string, aggregateFunction string) (string, []interface{}, error) {
 	aggregateFunction = strings.ToLower(aggregateFunction)
-	query := `SELECT `
+	query := "SELECT "
 
-	if aggregateFunction == "count" {
-		query += `COUNT(value)`
-	} else if aggregateFunction == "sum" {
-		query += `SUM(value::numeric)`
-	} else if aggregateFunction == "minimum" {
-		query += `MIN(value)`
-	} else if aggregateFunction == "maximum" {
-		query += `MAX(value)`
-	} else if aggregateFunction == "average" {
-		query += `AVG(value::numeric)`
-	} else if aggregateFunction == "range" {
-		query += `MAX(value::numeric) - MIN(value::numeric)`
+	switch aggregateFunction {
+	case "count":
+		query += "COUNT(value)"
+	case "sum":
+		query += "SUM(value::numeric)"
+	case "minimum":
+		query += "MIN(value)"
+	case "maximum":
+		query += "MAX(value)"
+	case "average":
+		query += "AVG(value::numeric)"
+	case "range":
+		query += "MAX(value::numeric) - MIN(value::numeric)"
 	}
 
 	query += `
@@ -107,25 +87,23 @@ func createQuery(dataType string, aggregateFunction string) (string, []interface
 
 func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, baseParams []interface{}, meshNodeUUIDs []string) (data.AggregatedData, error) {
 	var aggregatedData data.AggregatedData
+	for currentStartTime := 0; currentStartTime < len(timeStamps)-1; currentStartTime++ {
 
-	var query string
-	var params []interface{}
-	for i := 0; i < len(timeStamps)-1; i++ {
-		query = baseQuery
-		params = baseParams
-		query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
-		params = append(params, timeStamps[i])
+		query := baseQuery
+		params := baseParams
+		query += " AND d.measured_at >= $" + strconv.Itoa(len(params)+1)
+		params = append(params, timeStamps[currentStartTime])
 
 		query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
-		params = append(params, timeStamps[i+1])
+		params = append(params, timeStamps[currentStartTime+1])
 
 		if len(meshNodeUUIDs) > 0 {
 			query += `AND mesh_node_id IN (`
-			for j, uuid := range meshNodeUUIDs {
-				if j != 0 {
+			for controllerNumber, uuid := range meshNodeUUIDs {
+				if controllerNumber != 0 {
 					query += `, `
 				}
-				query += `$` + strconv.Itoa(len(params)+1+j)
+				query += `$` + strconv.Itoa(len(params)+controllerNumber+1)
 				params = append(params, uuid)
 			}
 			query += `)`
@@ -157,9 +135,9 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 			}
 
 			sample := data.Sample{
-				Value:              sampleValue,
-				FirstMeasurementAt: timeStamps[i].String(),
-				LastMeasurementAt:  timeStamps[i+1].String(),
+				Value:           sampleValue,
+				IntervalStartAt: timeStamps[currentStartTime].String(),
+				IntervalEndAt:   timeStamps[currentStartTime+1].String(),
 			}
 
 			aggregatedData.Samples = append(aggregatedData.Samples, sample)
@@ -171,9 +149,9 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 
 		if !foundRows {
 			sample := data.Sample{
-				Value:              "0",
-				FirstMeasurementAt: timeStamps[i].String(),
-				LastMeasurementAt:  timeStamps[i+1].String(),
+				Value:           "0",
+				IntervalStartAt: timeStamps[currentStartTime].String(),
+				IntervalEndAt:   timeStamps[currentStartTime+1].String(),
 			}
 			aggregatedData.Samples = append(aggregatedData.Samples, sample)
 		}
@@ -182,13 +160,13 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 	return aggregatedData, nil
 }
 
-func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) (data.ManyData, error) {
+func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, startTime time.Time, endTime time.Time) (data.ManyData, error) {
 	var query = `
-			SELECT d.id, d.mesh_node_id, dt.name, d.created_at, d.measured_at, d.value
-			FROM data d
-			JOIN data_type dt ON d.data_type_id = dt.id
-			WHERE dt.name = $1
-		`
+	SELECT d.id, d.mesh_node_id, d.measured_at, d.value
+	FROM data d
+	JOIN data_type dt ON d.data_type_id = dt.id
+	WHERE dt.name = $1
+	`
 	params := []interface{}{dataType}
 
 	if len(meshNodeUUIDs) != 0 {
@@ -203,20 +181,12 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 		query += ")"
 	}
 
-	if measuredStart != time.Unix(0, 0).String() {
-		startTime, err := time.Parse(time.RFC3339, measuredStart)
-		if err != nil {
-			return data.ManyData{}, err
-		}
-		query += " AND d.measured_at > $" + strconv.Itoa(len(params)+1)
+	if startTime != time.Unix(0, 0) {
+		query += " AND d.measured_at >= $" + strconv.Itoa(len(params)+1)
 		params = append(params, startTime)
 	}
 
-	if measuredEnd != time.Unix(0, 0).String() {
-		endTime, err := time.Parse(time.RFC3339, measuredEnd)
-		if err != nil {
-			return data.ManyData{}, err
-		}
+	if endTime != time.Unix(0, 0) {
 		query += " AND d.measured_at < $" + strconv.Itoa(len(params)+1)
 		params = append(params, endTime)
 	}
@@ -233,14 +203,10 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 	result.DataType = dataType
 
 	for rows.Next() {
-		var id string
 		var controllerUUID string
-		var dataType string
-		var createdAt string
-		var measuredAt string
-		var value string
+		var measurement data.Measurement
 
-		err := rows.Scan(&id, &controllerUUID, &dataType, &createdAt, &measuredAt, &value)
+		err := rows.Scan(&measurement.UUID, &controllerUUID, &measurement.MeasuredAt, &measurement.Value)
 		if err != nil {
 			return data.ManyData{}, err
 		}
@@ -253,12 +219,6 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 			currentMeasuredData = &data.MeasuredData{
 				MeshnodeUUID: controllerUUID,
 			}
-		}
-
-		measurement := data.Measurement{
-			UUID:       id,
-			MeasuredAt: measuredAt,
-			Value:      value,
 		}
 
 		currentMeasuredData.Measurements = append(currentMeasuredData.Measurements, measurement)
@@ -276,11 +236,11 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 
 func (db DB) GetData(uuid string) (data.Data, error) {
 	query := `
-		SELECT d.mesh_node_id, dt.name, d.created_at, d.measured_at, d.value 
-		FROM data AS d
-		JOIN data_type AS dt 
-		ON d.data_type_id = dt.id
-		WHERE d.id = $1;
+	SELECT d.mesh_node_id, dt.name, d.created_at, d.measured_at, d.value 
+	FROM data AS d
+	JOIN data_type AS dt 
+	ON d.data_type_id = dt.id
+	WHERE d.id = $1;
 	`
 
 	rows, err := db.pool.Query(query, uuid)
@@ -308,7 +268,7 @@ func (db DB) GetData(uuid string) (data.Data, error) {
 
 func (db DB) GetTypes() ([]string, error) {
 	query := `
-		SELECT name FROM data_type;
+	SELECT name FROM data_type;
 	`
 
 	rows, err := db.pool.Query(query)
@@ -337,7 +297,7 @@ func (db DB) GetTypes() ([]string, error) {
 
 func (db DB) DeleteData(uuid string) error {
 	query := `
-		DELETE FROM data WHERE id = $1;
+	DELETE FROM data WHERE id = $1;
 	`
 
 	_, err := db.pool.Exec(query, uuid)
