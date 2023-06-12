@@ -8,26 +8,9 @@ import (
 	"github.com/go-chi/render"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mdma-backend/mdma-backend/internal/types"
-	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 const authCookieName = "token"
-
-type HashService interface {
-	Hash(string) (types.Hash, types.Salt, error)
-	HashAndCompare(string, types.Hash, types.Salt) bool
-}
-
-type TokenService interface {
-	SignWithClaims(Claims) (string, error)
-	Validate(string) (*Claims, error)
-}
-
-type Claims struct {
-	jwt.RegisteredClaims
-	RoleName    string                  `json:"role"`
-	Permissions []permission.Permission `json:"permissions"`
-}
 
 type AuthStore interface {
 	RoleByUsername(string) (types.Role, error)
@@ -46,8 +29,8 @@ type Token struct {
 
 func LoginHandler(
 	authStore AuthStore,
-	tokenService TokenService,
-	hashService HashService,
+	tokenService types.TokenService,
+	hashService types.HashService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var creds Credentials
@@ -75,7 +58,7 @@ func LoginHandler(
 
 		now := time.Now()
 		expiresAt := now.Add(24 * time.Hour)
-		claims := Claims{
+		claims := types.Claims{
 			RegisteredClaims: jwt.RegisteredClaims{
 				ExpiresAt: jwt.NewNumericDate(expiresAt),
 				IssuedAt:  jwt.NewNumericDate(now),
@@ -87,7 +70,7 @@ func LoginHandler(
 			Permissions: userRole.Permissions,
 		}
 
-		tokenStr, err := tokenService.SignWithClaims(claims)
+		token, err := tokenService.SignWithClaims(claims)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -95,17 +78,13 @@ func LoginHandler(
 
 		cookie := &http.Cookie{
 			Name:     authCookieName,
-			Value:    tokenStr,
+			Value:    token.Value,
 			Expires:  expiresAt,
 			Secure:   true,
 			HttpOnly: true,
 		}
 		http.SetCookie(w, cookie)
 
-		token := Token{
-			Token:     tokenStr,
-			ExpiresAt: expiresAt,
-		}
 		render.JSON(w, r, token)
 	}
 }

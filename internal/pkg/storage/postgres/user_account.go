@@ -1,172 +1,75 @@
 package postgres
 
 import (
-	"database/sql"
-	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
-	"strconv"
-	"time"
+	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
-func (db DB) UserAccount(id int) (user_account.UserAccount, error) {
-	query := `
-		SELECT id, role_id, created_at, updated_at, username
-		FROM user_account
-		WHERE id = $1
-	`
-	rows, err := db.pool.Query(query, id)
+func (db DB) UserAccount(id types.UserAccountID) (types.UserAccount, error) {
+	var ua types.UserAccount
+	if err := db.pool.QueryRow(`
+SELECT id, role_id, created_at, updated_at, username
+FROM user_account
+WHERE id = $1;
+`, id).Scan(&ua.ID, &ua.RoleID, &ua.CreatedAt, &ua.UpdatedAt, &ua.Username); err != nil {
+		return ua, err
+	}
+
+	return ua, nil
+}
+
+func (db DB) AllUserAccounts() ([]types.UserAccount, error) {
+	rows, err := db.pool.Query(`
+SELECT id, role_id, created_at, updated_at, username
+FROM user_account;
+`)
 	if err != nil {
-		return user_account.UserAccount{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	var userAccount user_account.UserAccount
-
+	var userAccounts []types.UserAccount
 	for rows.Next() {
-		var idString string
-		var roleId sql.NullString
-		var createdAt string
-		var updatedAt sql.NullString
-		var username string
-
-		err := rows.Scan(&idString, &roleId, &createdAt, &updatedAt, &username)
-		if err != nil {
-			return user_account.UserAccount{}, err
-		}
-		id, err := strconv.Atoi(idString)
-		if err != nil {
-			return user_account.UserAccount{}, err
-		}
-		var updatedAtString string
-		if updatedAt.Valid {
-			updatedAtString = updatedAt.String
-		}
-		var roleIDString string
-		if roleId.Valid {
-			roleIDString = roleId.String
-		}
-		roleIdInt, err := strconv.Atoi(roleIDString)
-		userAccount = user_account.UserAccount{
-			ID:        id,
-			RoleID:    roleIdInt,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAtString,
-			Username:  username,
-			Password:  nil,
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return user_account.UserAccount{}, err
-	}
-
-	return userAccount, nil
-
-}
-
-func (db DB) AllUserAccounts() ([]user_account.UserAccount, error) {
-	query := `
-		SELECT id, role_id, created_at, updated_at, username
-		FROM user_account
-	`
-	rows, err := db.pool.Query(query)
-	if err != nil {
-		return []user_account.UserAccount{}, err
-	}
-	defer rows.Close()
-
-	var result []user_account.UserAccount
-
-	for rows.Next() {
-		var idString string
-		var roleId sql.NullString
-		var createdAt string
-		var updatedAt sql.NullString
-		var username string
-
-		err := rows.Scan(&idString, &roleId, &createdAt, &updatedAt, &username)
+		var ua types.UserAccount
+		err := rows.Scan(&ua.ID, &ua.RoleID, &ua.CreatedAt, &ua.UpdatedAt, &ua.Username)
 		if err != nil {
 			return nil, err
 		}
-		id, err := strconv.Atoi(idString)
-		if err != nil {
-			return nil, err
-		}
-		var updatedAtString string
-		if updatedAt.Valid {
-			updatedAtString = updatedAt.String
-		}
-		var roleIDString string
-		if roleId.Valid {
-			roleIDString = roleId.String
-		}
-		roleIdInt, err := strconv.Atoi(roleIDString)
-		accounts := user_account.UserAccount{
-			ID:        id,
-			RoleID:    roleIdInt,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAtString,
-			Username:  username,
-			Password:  nil,
-		}
-		result = append(result, accounts)
+		userAccounts = append(userAccounts, ua)
 	}
 
-	return result, nil
+	return userAccounts, nil
 }
 
-func (db DB) CreateUserAccount(roleID int, createdAT string, username string, password []byte) error {
-	query := `
-		INSERT INTO user_account (role_id, created_at, username, password)
-		VALUES ($1, NOW(), $2, $3)
-		
-	`
-	_, err := db.pool.Exec(
-		query,
-		strconv.Itoa(roleID),
-		username,
-		password,
-	)
-	if err != nil {
+func (db DB) CreateUserAccount(ua *types.UserAccount, h types.Hash, s types.Salt) error {
+	if err := db.pool.QueryRow(`
+INSERT INTO user_account (role_id, username, password, salt)
+VALUES ($1, $2, $3, $4)
+RETURNING id, created_at;
+`, ua.RoleID, ua.Username, h, s).Scan(&ua.ID, &ua.CreatedAt); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (db DB) UpdateUserAccount(id int, roleID int, username string, password []byte) (user_account.UserAccount, error) {
-	query := `
-		UPDATE user_account
-		SET role_id = $2, updated_at =$3, username = $4, password = $5
-		WHERE id = $1
-	`
-	updatedAt := time.Now().Format(time.RFC3339)
-	_, err := db.pool.Exec(
-		query,
-		id,
-		roleID,
-		updatedAt,
-		username,
-		password,
-	)
-
-	if err != nil {
-		return user_account.UserAccount{}, err
+func (db DB) UpdateUserAccount(id types.UserAccountID, ua *types.UserAccount) error {
+	if err := db.pool.QueryRow(`
+UPDATE user_account
+SET role_id = $1, updated_at = now(), username = $2
+WHERE id = $3
+RETURNING updated_at;
+`, ua.RoleID, ua.Username, id).Scan(&ua.UpdatedAt); err != nil {
+		return err
 	}
 
-	updatedAccount, err := db.UserAccount(id)
-	if err != nil {
-		return user_account.UserAccount{}, err
-	}
-
-	return updatedAccount, nil
+	return nil
 }
-func (db DB) DeleteUserAccount(id int) error {
-	query := `
-		DELETE FROM user_account WHERE id = $1;
-	`
 
-	_, err := db.pool.Exec(query, id)
-	if err != nil {
+func (db DB) DeleteUserAccount(id types.UserAccountID) error {
+	if _, err := db.pool.Exec(`
+DELETE FROM user_account
+WHERE id = $1;
+`, id); err != nil {
 		return err
 	}
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mdma-backend/mdma-backend/internal/types"
 	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
@@ -12,7 +13,7 @@ var (
 	PermissionsCtxKey = &struct{}{}
 )
 
-func Middleware(tokenService TokenService, excludedPaths ...string) func(next http.Handler) http.Handler {
+func Middleware(tokenService types.TokenService, excludedPaths ...string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			for _, path := range excludedPaths {
