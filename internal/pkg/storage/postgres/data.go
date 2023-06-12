@@ -120,7 +120,7 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 		params = append(params, timeStamps[i+1])
 
 		if len(meshNodeUUIDs) > 0 {
-			query += `AND controller_id IN (`
+			query += `AND mesh_node_id IN (`
 			for j, uuid := range meshNodeUUIDs {
 				if j != 0 {
 					query += `, `
@@ -184,7 +184,7 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 
 func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart string, measuredEnd string) (data.ManyData, error) {
 	var query = `
-			SELECT d.id, d.controller_id, dt.name, d.created_at, d.measured_at, d.value
+			SELECT d.id, d.mesh_node_id, dt.name, d.created_at, d.measured_at, d.value
 			FROM data d
 			JOIN data_type dt ON d.data_type_id = dt.id
 			WHERE dt.name = $1
@@ -197,7 +197,7 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 			if i != 0 {
 				query += " OR"
 			}
-			query += " d.controller_id = $" + strconv.Itoa(len(params)+1+i)
+			query += " d.mesh_node_id = $" + strconv.Itoa(len(params)+1+i)
 			params = append(params, uuid)
 		}
 		query += ")"
@@ -276,7 +276,7 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, measuredStart 
 
 func (db DB) GetData(uuid string) (data.Data, error) {
 	query := `
-		SELECT d.controller_id, dt.name, d.created_at, d.measured_at, d.value 
+		SELECT d.mesh_node_id, dt.name, d.created_at, d.measured_at, d.value 
 		FROM data AS d
 		JOIN data_type AS dt 
 		ON d.data_type_id = dt.id
