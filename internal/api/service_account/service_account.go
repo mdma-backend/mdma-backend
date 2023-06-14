@@ -2,41 +2,38 @@ package service_account
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/mdma-backend/mdma-backend/internal/api/auth"
+	"github.com/mdma-backend/mdma-backend/internal/types"
 	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
-type ServiceUserStore interface {
-	ServiceAccount(id int) (ServiceAccount, error)
-	AllServiceAccounts() ([]ServiceAccount, error)
-	CreateServiceAccount(roleID int, username string) error
-	UpdateServiceAccount(id int, roleID int, username string) (ServiceAccount, error)
-	DeleteServiceAccount(id int) error
+type ServiceAccountStore interface {
+	RoleByID(types.RoleID) (types.Role, error)
+	ServiceAccount(types.ServiceAccountID) (types.ServiceAccount, error)
+	AllServiceAccounts() ([]types.ServiceAccount, error)
+	CreateServiceAccount(*types.ServiceAccount, types.Token) error
+	UpdateServiceAccount(types.ServiceAccountID, *types.ServiceAccount) error
+	DeleteServiceAccount(types.ServiceAccountID) error
 }
 
 type service struct {
-	handler          http.Handler
-	serviceUserStore ServiceUserStore
-}
-type ServiceAccount struct {
-	ID        int    `json:"id,omitempty"`
-	RoleID    int    `json:"roleId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Token     []byte `json:"token,omitempty"`
+	handler             http.Handler
+	serviceAccountStore ServiceAccountStore
+	tokenService        types.TokenService
 }
 
-func NewService(serviceUserStore ServiceUserStore) http.Handler {
+func NewService(serviceUserStore ServiceAccountStore, tokenSerive types.TokenService) http.Handler {
 	r := chi.NewRouter()
 	s := service{
-		handler:          r,
-		serviceUserStore: serviceUserStore,
+		handler:             r,
+		serviceAccountStore: serviceUserStore,
+		tokenService:        tokenSerive,
 	}
 
 	r.Get("/{id}", auth.RestrictHandlerFunc(s.getAccountService(), permission.ServiceAccountRead))
@@ -54,113 +51,116 @@ func (s service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s service) getAllService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accounts, err := s.serviceUserStore.AllServiceAccounts()
+		userAccounts, err := s.serviceAccountStore.AllServiceAccounts()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Internal server error")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		response, err := json.Marshal(accounts)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Internal server error")
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(response)
+		render.JSON(w, r, userAccounts)
 	}
 }
 
 func (s service) getAccountService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		idInt, err := strconv.Atoi(id)
-
-		account, err := s.serviceUserStore.ServiceAccount(idInt)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Invalid account ID")
-			return
-		}
-
-		response, err := json.Marshal(account)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Internal server error")
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(response)
-	}
-}
-
-func (s service) createAccountService() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var serviceAccount ServiceAccount
-
-		if err := json.NewDecoder(r.Body).Decode(&serviceAccount); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, "Invalid request payload")
-			return
-		}
-
-		err := s.serviceUserStore.CreateServiceAccount(serviceAccount.RoleID, serviceAccount.Username)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, "Failed to create User")
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(serviceAccount)
-	}
-}
-func (s service) updateAccountService() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		idInt, _ := strconv.Atoi(id)
-
-		var serviceAccount ServiceAccount
-		err := json.NewDecoder(r.Body).Decode(&serviceAccount)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, "Invalid request payload")
-			return
-		}
-
-		serviceAccount, err = s.serviceUserStore.UpdateServiceAccount(idInt, serviceAccount.RoleID, serviceAccount.Username)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, "Failed to update user")
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "UserAccount updated successfully")
-	}
-}
-func (s service) deleteAccountService() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		idInt, err := strconv.Atoi(id)
+		serviceAccountID, err := types.IDFromString[types.ServiceAccountID](id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if err := s.serviceUserStore.DeleteServiceAccount(idInt); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, "Failed to delete service Account")
+		serviceAccount, err := s.serviceAccountStore.ServiceAccount(serviceAccountID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "UserAccount deleted successfully")
+		render.JSON(w, r, serviceAccount)
+	}
+}
+
+func (s service) createAccountService() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var serviceAccount types.ServiceAccount
+		if err := json.NewDecoder(r.Body).Decode(&serviceAccount); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		role, err := s.serviceAccountStore.RoleByID(serviceAccount.RoleID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		now := time.Now()
+		expiresAt := now.Add(24 * 7 * 52 * time.Hour) // one year
+		claims := types.Claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(expiresAt),
+				IssuedAt:  jwt.NewNumericDate(now),
+				NotBefore: jwt.NewNumericDate(now),
+				Issuer:    "mdma-backend",
+				Subject:   serviceAccount.Username,
+			},
+			RoleName:    role.Name,
+			Permissions: role.Permissions,
+		}
+
+		token, err := s.tokenService.SignWithClaims(claims)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err := s.serviceAccountStore.CreateServiceAccount(&serviceAccount, token); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		serviceAccount.Token = token.Value
+
+		render.Status(r, http.StatusCreated)
+		render.JSON(w, r, serviceAccount)
+	}
+}
+func (s service) updateAccountService() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		serviceAccountID, err := types.IDFromString[types.ServiceAccountID](id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var serviceAccount types.ServiceAccount
+		if err := json.NewDecoder(r.Body).Decode(&serviceAccount); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err = s.serviceAccountStore.UpdateServiceAccount(serviceAccountID, &serviceAccount); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		render.JSON(w, r, serviceAccount)
+	}
+}
+func (s service) deleteAccountService() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		serviceAccountID, err := types.IDFromString[types.ServiceAccountID](id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := s.serviceAccountStore.DeleteServiceAccount(serviceAccountID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

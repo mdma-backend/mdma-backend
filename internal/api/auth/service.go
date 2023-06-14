@@ -17,20 +17,27 @@ type JWTService struct {
 	Leeway        time.Duration
 }
 
-func (s JWTService) SignWithClaims(claims Claims) (string, error) {
+func (s JWTService) SignWithClaims(claims types.Claims) (types.Token, error) {
 	token := jwt.NewWithClaims(s.SigningMethod, claims)
-	return token.SignedString(s.Secret)
+	tokenStr, err := token.SignedString(s.Secret)
+	if err != nil {
+		return types.Token{}, nil
+	}
+
+	return types.Token{
+		Value: tokenStr,
+	}, nil
 }
 
-func (s JWTService) Validate(tokenStr string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+func (s JWTService) Validate(tokenStr string) (*types.Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &types.Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return s.Secret, nil
 	}, jwt.WithLeeway(s.Leeway))
 	if err != nil {
 		return nil, err
 	}
 
-	claims, ok := token.Claims.(*Claims)
+	claims, ok := token.Claims.(*types.Claims)
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid token")
 	}
