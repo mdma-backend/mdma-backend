@@ -9,6 +9,6 @@ type ServiceAccount struct {
 	RoleID    RoleID           `json:"roleId,omitempty"`
 	CreatedAt time.Time        `json:"createdAt"`
 	UpdatedAt *time.Time       `json:"updatedAt,omitempty"`
-	Username  string           `json:"username"`
-	Token     string           `json:"token"`
+	Name      string           `json:"name"`
+	Token     string           `json:"token,omitempty"`
 }

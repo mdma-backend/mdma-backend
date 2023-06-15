@@ -7,10 +7,10 @@ import (
 func (db DB) ServiceAccount(id types.ServiceAccountID) (types.ServiceAccount, error) {
 	var sa types.ServiceAccount
 	if err := db.pool.QueryRow(`
-SELECT id, role_id, created_at, updated_at, username
+SELECT id, role_id, created_at, updated_at, name, token
 FROM service_account
 WHERE id = $1;
-`, id).Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Username); err != nil {
+`, id).Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Name, &sa.Token); err != nil {
 		return sa, err
 	}
 
@@ -19,7 +19,7 @@ WHERE id = $1;
 
 func (db DB) AllServiceAccounts() ([]types.ServiceAccount, error) {
 	rows, err := db.pool.Query(`
-SELECT id, role_id, created_at, updated_at, username
+SELECT id, role_id, created_at, updated_at, name
 FROM service_account;
 `)
 	if err != nil {
@@ -30,7 +30,7 @@ FROM service_account;
 	var serviceAccounts []types.ServiceAccount
 	for rows.Next() {
 		var sa types.ServiceAccount
-		err := rows.Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Username)
+		err := rows.Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -42,10 +42,10 @@ FROM service_account;
 
 func (db DB) CreateServiceAccount(sa *types.ServiceAccount, t types.Token) error {
 	if err := db.pool.QueryRow(`
-INSERT INTO service_account (role_id, username, token)
+INSERT INTO service_account (role_id, name, token)
 VALUES ($1, $2, $3)
 RETURNING id, created_at;
-`, sa.RoleID, sa.Username, t.Value).Scan(&sa.ID, &sa.CreatedAt); err != nil {
+`, sa.RoleID, sa.Name, t.Value).Scan(&sa.ID, &sa.CreatedAt); err != nil {
 		return err
 	}
 
@@ -55,10 +55,10 @@ RETURNING id, created_at;
 func (db DB) UpdateServiceAccount(id types.ServiceAccountID, sa *types.ServiceAccount) error {
 	if err := db.pool.QueryRow(`
 UPDATE service_account
-SET role_id = $1, updated_at = now(), username = $2
+SET role_id = $1, updated_at = now(), name = $2
 WHERE id = $3
 RETURNING updated_at;
-`, sa.RoleID, sa.Username, id).Scan(&sa.UpdatedAt); err != nil {
+`, sa.RoleID, sa.Name, id).Scan(&sa.UpdatedAt); err != nil {
 		return err
 	}
 

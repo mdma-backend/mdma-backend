@@ -72,6 +72,8 @@ func createQuery(dataType string, aggregateFunction string) (string, []interface
 		query += "AVG(value::numeric)"
 	case "range":
 		query += "MAX(value::numeric) - MIN(value::numeric)"
+	case "median":
+		query += "PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY d.value) AS value"
 	}
 
 	query += `

@@ -102,7 +102,7 @@ func (s service) createAccountService() http.HandlerFunc {
 				IssuedAt:  jwt.NewNumericDate(now),
 				NotBefore: jwt.NewNumericDate(now),
 				Issuer:    "mdma-backend",
-				Subject:   serviceAccount.Username,
+				Subject:   serviceAccount.Name,
 			},
 			RoleName:    role.Name,
 			Permissions: role.Permissions,

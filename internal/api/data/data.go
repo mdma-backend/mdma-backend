@@ -160,6 +160,12 @@ func (s service) getAggregatedData() http.HandlerFunc {
 			return
 		}
 
+		if data.Samples == nil {
+			w.WriteHeader(http.StatusNoContent)
+			w.Write([]byte("404 no samles found"))
+			return
+		}
+
 		response, err := json.Marshal(data)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -181,6 +187,7 @@ func isValidAggregateFunction(aggregateFunction string) bool {
 		"maximum": true,
 		"average": true,
 		"range":   true,
+		"median":  true,
 	}
 
 	_, ok := validFunctions[aggregateFunction]
@@ -227,6 +234,12 @@ func (s service) getManyData() http.HandlerFunc {
 			return
 		}
 
+		if data.MeasuredDatas == nil {
+			w.WriteHeader(http.StatusNoContent)
+			w.Write([]byte("404 no data found"))
+			return
+		}
+
 		response, err := json.Marshal(data)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -251,6 +264,12 @@ func (s service) getData() http.HandlerFunc {
 			return
 		}
 
+		if data.Value == "" {
+			w.WriteHeader(http.StatusNoContent)
+			w.Write([]byte("404 no data found"))
+			return
+		}
+
 		response, err := json.Marshal(data)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -270,6 +289,12 @@ func (s service) getDataTypes() http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
+			return
+		}
+
+		if dataTypes == nil {
+			w.WriteHeader(http.StatusNoContent)
+			w.Write([]byte("404 no dataType found"))
 			return
 		}
 

@@ -3,11 +3,12 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"github.com/mdma-backend/mdma-backend/internal/api/data"
-	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mdma-backend/mdma-backend/internal/api/data"
+	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node"
 )
 
 // GetMeshNodes Funktioniert
