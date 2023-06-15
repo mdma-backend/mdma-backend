@@ -10,5 +10,5 @@ type ServiceAccount struct {
 	CreatedAt time.Time        `json:"createdAt"`
 	UpdatedAt *time.Time       `json:"updatedAt,omitempty"`
 	Name      string           `json:"name"`
-	Token     string           `json:"token"`
+	Token     string           `json:"token,omitempty"`
 }

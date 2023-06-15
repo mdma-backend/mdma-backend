@@ -7,10 +7,10 @@ import (
 func (db DB) ServiceAccount(id types.ServiceAccountID) (types.ServiceAccount, error) {
 	var sa types.ServiceAccount
 	if err := db.pool.QueryRow(`
-SELECT id, role_id, created_at, updated_at, name
+SELECT id, role_id, created_at, updated_at, name, token
 FROM service_account
 WHERE id = $1;
-`, id).Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Name); err != nil {
+`, id).Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Name, &sa.Token); err != nil {
 		return sa, err
 	}
 
