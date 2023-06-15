@@ -833,8 +833,13 @@ components:
 
     GetSingleData:
       allOf:
-        - $ref: "#/components/schemas/ResourceWithUUID"
         - $ref: "#/components/schemas/SingleData"
+      properties:
+        id:
+          $ref: "#/components/schemas/ID"
+        createdAt:
+          type: string
+          format: date-time
 
   parameters:
     UUID:

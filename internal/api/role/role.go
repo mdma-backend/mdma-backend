@@ -71,7 +71,7 @@ func (s service) getRoles() http.HandlerFunc {
 func (s service) getRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		roleID, err := types.RoleIDFromString(id)
+		roleID, err := types.IDFromString[types.RoleID](id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -108,7 +108,7 @@ func (s service) postRole() http.HandlerFunc {
 func (s service) putRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		roleID, err := types.RoleIDFromString(id)
+		roleID, err := types.IDFromString[types.RoleID](id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -133,7 +133,7 @@ func (s service) putRole() http.HandlerFunc {
 func (s service) deleteRole() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		roleID, err := types.RoleIDFromString(id)
+		roleID, err := types.IDFromString[types.RoleID](id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
