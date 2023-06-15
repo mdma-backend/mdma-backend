@@ -673,7 +673,7 @@ components:
     ServiceAccount:
       type: object
       properties:
-        username:
+        name:
           type: string
           example: Gateway1
         roleId:
