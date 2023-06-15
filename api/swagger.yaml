@@ -98,6 +98,30 @@ paths:
                 items:
                   $ref: "#/components/schemas/GetSingleData"
 
+  /mesh-nodes/{uuid}/data-list:
+    parameters:
+      - $ref: "#/components/parameters/UUID"
+    post:
+      tags:
+        - Mesh-Nodes
+        - Data
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/PostData"
+      responses:
+        201:
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GetSingleData"
+
   /data/aggregated:
     get:
       tags:

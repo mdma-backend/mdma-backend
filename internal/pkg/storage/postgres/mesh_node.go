@@ -207,6 +207,17 @@ func (db DB) CreateMeshNodeData(meshNodeId string, data data.Data) error {
 	return nil
 }
 
+func (db DB) CreateManyMeshNodeData(meshNodeId string, data []data.Data) error {
+
+	for _, singleData := range data {
+		err := db.CreateMeshNodeData(meshNodeId, singleData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // PutMeshNode Funktioniert
 func (db DB) UpdateMeshNode(id string, meshNode mesh_node.MeshNode) error {
 	query := `
