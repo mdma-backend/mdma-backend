@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mdma-backend/mdma-backend/internal/api/auth"
+	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 type DataStore interface {
@@ -67,11 +69,11 @@ func NewService(dataStore DataStore) http.Handler {
 		dataStore: dataStore,
 	}
 
-	r.Get("/", s.getManyData())
-	r.Get("/{uuid}", s.getData())
-	r.Get("/types", s.getDataTypes())
-	r.Get("/aggregated", s.getAggregatedData())
-	r.Delete("/{uuid}", s.deleteData())
+	r.Get("/", auth.RestrictHandlerFunc(s.getManyData(), permission.DataRead))
+	r.Get("/", auth.RestrictHandlerFunc(s.getData(), permission.DataRead))
+	r.Get("/", auth.RestrictHandlerFunc(s.getDataTypes(), permission.DataRead))
+	r.Get("/", auth.RestrictHandlerFunc(s.getAggregatedData(), permission.DataRead))
+	r.Delete("/{uuid}", auth.RestrictHandlerFunc(s.deleteData(), permission.DataDelete))
 
 	return s
 }

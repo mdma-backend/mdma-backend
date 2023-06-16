@@ -48,7 +48,9 @@ CREATE TYPE permission AS ENUM (
     'role_create',
     'role_read',
     'role_update',
-    'role_delete'
+    'role_delete',
+
+    'area_read'
 );
 
 CREATE TABLE role_permission (
@@ -176,6 +178,7 @@ INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_creat
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_read');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_update');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_delete');
+INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'area_read');
 
 INSERT INTO "user_account" ("role_id", "username", "password", "salt") VALUES ('1', 'H4r4ldD3rH4ck3r', decode('7g5FK95ihY7C7KuZAcyA4r8+pFyg7rFEfadWoWREp1w=', 'base64'), decode('V0P7HrHEEm7Q1F0VLPMbt1BHBFtKLCFJMnhZJivV5Ms=', 'base64'));
 

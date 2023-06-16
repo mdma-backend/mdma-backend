@@ -30,6 +30,8 @@ const (
 	RoleRead   Permission = "role_read"
 	RoleUpdate Permission = "role_update"
 	RoleDelete Permission = "role_delete"
+
+	AreaRead Permission = "area_read"
 )
 
 func Permissions() []Permission {
@@ -61,5 +63,7 @@ func Permissions() []Permission {
 		RoleRead,
 		RoleUpdate,
 		RoleDelete,
+
+		AreaRead,
 	}
 }
