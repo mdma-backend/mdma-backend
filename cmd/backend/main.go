@@ -10,14 +10,15 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node_update"
 	"github.com/mdma-backend/mdma-backend/internal/api/area"
+	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node_update"
 	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
 	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mdma-backend/mdma-backend/api"
 	"github.com/mdma-backend/mdma-backend/internal/api/auth"
@@ -34,6 +35,7 @@ const (
 var (
 	commitHash  = "dev-build"
 	databaseDSN = "postgres://postgres:postgres@localhost/postgres?sslmode=disable&connect_timeout=3"
+	jwtSecret   = "change_me"
 )
 
 func envString(name, value string) string {
@@ -45,6 +47,7 @@ func envString(name, value string) string {
 
 func initEnvVars() {
 	databaseDSN = envString("DATABASE_DSN", databaseDSN)
+	jwtSecret = envString("JWT_SECRET", jwtSecret)
 }
 
 func init() {
@@ -65,46 +68,26 @@ func run() error {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)          
+	r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
-		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
-		AllowedOrigins: []string{"https://*", "http://*"},
-		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		MaxAge:           300,
 	}))
-
-	// Auth Middleware
-	docsPath := "/docs"
-	openAPIPath := docsPath + "/swagger.yaml"
-	loginPath := "/login"
-	tokenService := auth.JWTService{
-		Secret:        []byte("change_me"),
-		SigningMethod: jwt.SigningMethodHS256,
-		Leeway:        5 * time.Second,
-	}
-	r.Use(auth.Middleware(tokenService, "/", docsPath, openAPIPath, loginPath))
-
-	// Docs Redirect
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, docsPath, http.StatusFound)
-	})
-
-	// Swagger Docs
-	r.Handle(docsPath, api.SwaggerUIHandler(api.SwaggerUIOpts{
-		Path:    docsPath,
-		SpecURL: openAPIPath,
-		Title:   "FoREST API Docs",
-	}))
-	r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
 
 	// Connect to Database
 	db, err := postgres.New(databaseDSN)
 	if err != nil {
 		return fmt.Errorf("connecting to postgres: %w", err)
+	}
+
+	tokenService := auth.JWTService{
+		Secret:        []byte(jwtSecret),
+		SigningMethod: jwt.SigningMethodHS256,
+		Leeway:        5 * time.Second,
 	}
 
 	hashService := auth.Argon2IDService{
@@ -115,20 +98,46 @@ func run() error {
 		KeyLen:  32,
 	}
 
-	// Mount Features
-	r.Mount("/data", data.NewService(db))
-	r.Mount("/mesh-nodes", mesh_node.NewService(db))
-	r.Route("/accounts", func(r chi.Router) {
-		r.Mount("/users", user_account.NewService(db, hashService))
-		r.Mount("/services", service_account.NewService(db, tokenService))
-	})
-	r.Mount("/roles", role.NewService(db))
-	r.Mount("/mesh-node-updates", mesh_node_update.NewService(db))
-	r.Mount("/areas", area.NewService())
+	// Unprotected routes
+	r.Group(func(r chi.Router) {
+		r.Use(httprate.LimitByIP(100, 1*time.Minute))
 
-	// Login/Logout
-	r.Post(loginPath, auth.LoginHandler(db, tokenService, hashService))
-	r.Delete("/logout", auth.LogoutHandler())
+		// Login
+		r.Post("/login", auth.LoginHandler(db, tokenService, hashService))
+
+		docsPath := "/docs"
+		openAPIPath := docsPath + "/swagger.yaml"
+
+		// Docs Redirect
+		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, docsPath, http.StatusFound)
+		})
+
+		// Swagger Docs
+		r.Handle(docsPath, api.SwaggerUIHandler(api.SwaggerUIOpts{
+			Path:    docsPath,
+			SpecURL: openAPIPath,
+			Title:   "FoREST API Docs",
+		}))
+		r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
+	})
+
+	// Protected routes
+	r.Group(func(r chi.Router) {
+		r.Use(auth.Middleware(tokenService))
+
+		// Mount Features
+		r.Mount("/data", data.NewService(db))
+		r.Mount("/mesh-nodes", mesh_node.NewService(db))
+		r.Route("/accounts", func(r chi.Router) {
+			r.Mount("/users", user_account.NewService(db, hashService))
+			r.Mount("/services", service_account.NewService(db, tokenService))
+		})
+		r.Mount("/roles", role.NewService(db))
+		r.Mount("/mesh-node-updates", mesh_node_update.NewService(db))
+		r.Mount("/areas", area.NewService())
+		r.Delete("/logout", auth.LogoutHandler())
+	})
 
 	srv := &http.Server{
 		Addr:    ":8080",

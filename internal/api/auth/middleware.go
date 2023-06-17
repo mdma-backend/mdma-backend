@@ -29,7 +29,7 @@ func Middleware(tokenService types.TokenService, excludedPaths ...string) func(n
 			} else {
 				cookie, err := r.Cookie(authCookieName)
 				if err != nil {
-					http.Error(w, err.Error(), http.StatusUnauthorized)
+					http.Error(w, "no token in header or cookie", http.StatusUnauthorized)
 					return
 				}
 
