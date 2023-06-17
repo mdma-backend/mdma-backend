@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -51,21 +50,27 @@ FROM role;
 }
 
 func (db DB) CreateRole(role *types.Role) error {
-	query := `
-WITH new_role AS (
-	INSERT INTO role (name)
-	VALUES ($1)
-	RETURNING id
-)
-INSERT INTO role_permission (role_id, permission)
-SELECT id, unnest(array[
-`
-	params := []interface{}{role.Name}
+	tx, err := db.pool.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err = tx.QueryRow(`
+INSERT INTO role (name)
+VALUES ($1)
+RETURNING id, created_at;
+`, role.Name).Scan(&role.ID, &role.CreatedAt); err != nil {
+		return err
+	}
+
+	query := "INSERT INTO role_permission (role_id, permission) values "
+	var params []interface{}
 
 	for i, perm := range role.Permissions {
-		paramIndex := i + 2
-		query += fmt.Sprintf("$%d", paramIndex)
-		params = append(params, perm)
+		paramIndex := len(params) + 1
+		query += fmt.Sprintf("($%d, $%d)", paramIndex, paramIndex+1)
+		params = append(params, role.ID, perm)
 
 		isLastPerm := i == len(role.Permissions)-1
 		if isLastPerm {
@@ -75,29 +80,15 @@ SELECT id, unnest(array[
 		query += ", "
 	}
 
-	query += `
-])::permission
-FROM new_role;
-`
-
-	_, err := db.pool.Exec(query, params...)
-	if err != nil {
+	if _, err := tx.Exec(query, params...); err != nil {
 		return err
 	}
 
-	if err := db.pool.QueryRow(`
-SELECT id, created_at
-FROM role
-WHERE name = $1;
-`, role.Name).Scan(&role.ID, &role.CreatedAt); err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (db DB) UpdateRole(roleID types.RoleID, role *types.Role) error {
-	tx, err := db.pool.BeginTx(context.Background(), nil)
+	tx, err := db.pool.Begin()
 	if err != nil {
 		return err
 	}
