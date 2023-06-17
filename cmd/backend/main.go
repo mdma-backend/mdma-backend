@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/mdma-backend/mdma-backend/internal/api/area"
 	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
 	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
 
@@ -121,6 +122,7 @@ func run() error {
 		r.Mount("/services", service_account.NewService(db, tokenService))
 	})
 	r.Mount("/roles", role.NewService(db))
+	r.Mount("/areas", area.NewService())
 
 	// Login/Logout
 	r.Post(loginPath, auth.LoginHandler(db, tokenService, hashService))
