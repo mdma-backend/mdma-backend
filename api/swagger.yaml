@@ -532,6 +532,38 @@ paths:
                 items:
                   $ref: "#/components/schemas/Permission"
 
+  /areas:
+    get:
+      tags:
+        - Area
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Area"
+        400:
+          description: Bad Request.
+
+  /areas/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags:
+        - Area
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Area"
+        400:
+          description: Bad Request.
+
   /mesh-node-updates:
     get:
       tags:
@@ -730,6 +762,16 @@ components:
       type: string
       example: sensor_data_read
         
+    Area:
+      type: object
+      properties:
+        areaId:
+          $ref: "#/components/schemas/ID"
+        meshNodeUUIDs:
+          type: array
+          items:
+            $ref: "#/components/schemas/UUID"
+
     MeshNode:
       type: object
       properties:

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node_update"
+	"github.com/mdma-backend/mdma-backend/internal/api/area"
 	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
 	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
 
@@ -123,6 +124,7 @@ func run() error {
 	})
 	r.Mount("/roles", role.NewService(db))
 	r.Mount("/mesh-node-updates", mesh_node_update.NewService(db))
+	r.Mount("/areas", area.NewService())
 
 	// Login/Logout
 	r.Post(loginPath, auth.LoginHandler(db, tokenService, hashService))
