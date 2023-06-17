@@ -70,9 +70,9 @@ func NewService(dataStore DataStore) http.Handler {
 	}
 
 	r.Get("/", auth.RestrictHandlerFunc(s.getManyData(), permission.DataRead))
-	r.Get("/", auth.RestrictHandlerFunc(s.getData(), permission.DataRead))
-	r.Get("/", auth.RestrictHandlerFunc(s.getDataTypes(), permission.DataRead))
-	r.Get("/", auth.RestrictHandlerFunc(s.getAggregatedData(), permission.DataRead))
+	r.Get("/{uuid}", auth.RestrictHandlerFunc(s.getData(), permission.DataRead))
+	r.Get("/types", auth.RestrictHandlerFunc(s.getDataTypes(), permission.DataRead))
+	r.Get("/aggregated", auth.RestrictHandlerFunc(s.getAggregatedData(), permission.DataRead))
 	r.Delete("/{uuid}", auth.RestrictHandlerFunc(s.deleteData(), permission.DataDelete))
 
 	return s
