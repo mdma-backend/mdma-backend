@@ -10,7 +10,6 @@ const (
 
 	MeshNodeUpdateCreate Permission = "mesh_node_update_create"
 	MeshNodeUpdateRead   Permission = "mesh_node_update_read"
-	MeshNodeUpdateDelete Permission = "mesh_node_update_delete"
 
 	DataCreate Permission = "data_create"
 	DataRead   Permission = "data_read"
@@ -43,7 +42,6 @@ func Permissions() []Permission {
 
 		MeshNodeUpdateCreate,
 		MeshNodeUpdateRead,
-		MeshNodeUpdateDelete,
 
 		DataCreate,
 		DataRead,

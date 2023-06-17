@@ -5,32 +5,21 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
 	"github.com/mdma-backend/mdma-backend/internal/api/auth"
 	"github.com/mdma-backend/mdma-backend/internal/api/data"
+	"github.com/mdma-backend/mdma-backend/internal/types"
 	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
-type Point struct {
-	Lat float32 `json:"lat"`
-	Lon float32 `json:"lon"`
-}
-
-type MeshNode struct {
-	Id        string `json:"uuid"`
-	UpdateId  int64  `json:"updateId,omitempty"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Location  Point  `json:"location"`
-}
-
 type MeshNodeStore interface {
-	MeshNodes() ([]MeshNode, error)
-	MeshNodeById(id string) (MeshNode, error)
-	CreateMeshNode(node MeshNode) error
-	CreateMeshNodeData(meshNodeId string, data data.Data) error
-	CreateManyMeshNodeData(meshNodeId string, data []data.Data) error
-	UpdateMeshNode(id string, node MeshNode) error
-	DeleteMeshNode(id string) error
+	MeshNodes() ([]types.MeshNode, error)
+	MeshNodeById(types.UUID) (types.MeshNode, error)
+	CreateMeshNode(*types.MeshNode) error
+	CreateMeshNodeData(types.UUID, *data.Data) error
+	CreateManyMeshNodeData(types.UUID, []data.Data) error
+	UpdateMeshNode(types.UUID, *types.MeshNode) error
+	DeleteMeshNode(types.UUID) error
 }
 
 type service struct {
@@ -62,237 +51,143 @@ func (s service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s service) getMeshNodes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 Method not allowed"))
-
-			return
-		}
-
 		meshNodes, err := s.meshNodeStore.MeshNodes()
-
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// JSON-Antwort erstellen
-		response, err := json.Marshal(meshNodes)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 JSON conversion failed"))
-			return
-		}
-
-		// Antwort senden
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(response)
+		render.JSON(w, r, meshNodes)
 	}
 }
 
 func (s service) getMeshNode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 Method not allowed"))
-
-			return
-		}
-
-		// Extrahiere die UUID aus dem Request-URL-Pfad
-		uuid := chi.URLParam(r, "uuid")
-
-		// Daten aus der Datenbank abrufen
-		meshNode, err := s.meshNodeStore.MeshNodeById(uuid)
+		uuidStr := chi.URLParam(r, "uuid")
+		meshNodeUUID, err := types.UUIDFromString(uuidStr)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if meshNode.Id == "" {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("404 mesh node not found"))
-			return
-		}
-
-		// JSON-Antwort erstellen
-		response, err := json.Marshal(meshNode)
+		meshNode, err := s.meshNodeStore.MeshNodeById(meshNodeUUID)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Antwort senden
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(response)
+		render.JSON(w, r, meshNode)
 	}
 }
 
 func (s service) postMeshNode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 Method not allowed"))
-
+		var meshNode types.MeshNode
+		if err := json.NewDecoder(r.Body).Decode(&meshNode); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// Dekodiere den JSON-Body der Anfrage in ein Payload-Objekt
-		var meshNode MeshNode
-		err := json.NewDecoder(r.Body).Decode(&meshNode)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("400 Invalid request payload"))
-
+		if err := s.meshNodeStore.CreateMeshNode(&meshNode); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		err = s.meshNodeStore.CreateMeshNode(meshNode)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
-			return
-		}
-
-		// Sende eine Erfolgsantwort zurück
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("Mesh node - POST request successful"))
+		render.Status(r, http.StatusCreated)
+		render.JSON(w, r, meshNode)
 	}
 }
 
 func (s service) postMeshNodeData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 Method not allowed"))
-
-			return
-		}
-
-		// Dekodiere den JSON-Body der Anfrage in ein Payload-Objekt
-		var meshNodeData data.Data
-		err := json.NewDecoder(r.Body).Decode(&meshNodeData)
+		uuidStr := chi.URLParam(r, "uuid")
+		meshNodeUUID, err := types.UUIDFromString(uuidStr)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("400 Invalid request payload"))
-
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		uuid := chi.URLParam(r, "uuid")
-		err = s.meshNodeStore.CreateMeshNodeData(uuid, meshNodeData)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
+		var data data.Data
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		data.MeshNodeUUID = meshNodeUUID.String()
+
+		if err = s.meshNodeStore.CreateMeshNodeData(meshNodeUUID, &data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Sende eine Erfolgsantwort zurück
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("Mesh node data - POST request successful"))
+		render.Status(r, http.StatusCreated)
+		render.JSON(w, r, data)
 	}
 }
 
 func (s service) postManyMeshNodeData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 Method not allowed"))
-
+		uuidStr := chi.URLParam(r, "uuid")
+		meshNodeUUID, err := types.UUIDFromString(uuidStr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// Dekodiere den JSON-Body der Anfrage in ein Payload-Objekt
 		var meshNodeData []data.Data
-		err := json.NewDecoder(r.Body).Decode(&meshNodeData)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("400 Invalid request payload"))
-
+		if err := json.NewDecoder(r.Body).Decode(&meshNodeData); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		uuid := chi.URLParam(r, "uuid")
-		err = s.meshNodeStore.CreateManyMeshNodeData(uuid, meshNodeData)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
+		if err = s.meshNodeStore.CreateManyMeshNodeData(meshNodeUUID, meshNodeData); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Sende eine Erfolgsantwort zurück
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("Many mesh node data - POST request successful"))
+		render.Status(r, http.StatusCreated)
+		render.JSON(w, r, meshNodeData)
 	}
 }
 
 func (s service) putMeshNode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 Method not allowed"))
-
-			return
-		}
-
-		// Extrahiere die UUID aus dem Request-URL-Pfad
-		uuid := chi.URLParam(r, "uuid")
-		var meshNode MeshNode
-
-		if err := json.NewDecoder(r.Body).Decode(&meshNode); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
-			return
-		}
-		/*
-			updateId := r.Body.("updateId")
-			latString := r.URL.Query().Get("latitude")
-			lonString := r.URL.Query().Get("longitude")
-
-			lat, _ := strconv.ParseFloat(latString, 32)
-			lon, _ := strconv.ParseFloat(lonString, 32)
-			updateIdInt, _ := strconv.ParseInt(updateId, 10, 64)
-			location := Point{Lat: float32(lat), Lon: float32(lon)}
-		*/
-		err := s.meshNodeStore.UpdateMeshNode(uuid, meshNode)
+		uuidStr := chi.URLParam(r, "uuid")
+		meshNodeUUID, err := types.UUIDFromString(uuidStr)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// Erfolgsmeldung senden
-		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte("Mesh node - PUT request successful"))
+		var meshNode types.MeshNode
+		if err := json.NewDecoder(r.Body).Decode(&meshNode); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := s.meshNodeStore.UpdateMeshNode(meshNodeUUID, &meshNode); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		meshNode.UUID = meshNodeUUID
+
+		render.JSON(w, r, meshNode)
 	}
 }
 
 func (s service) deleteMeshNode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			w.Write([]byte("405 Method not allowed"))
-
-			return
-		}
-
-		uuid := chi.URLParam(r, "uuid")
-
-		// Daten löschen
-		err := s.meshNodeStore.DeleteMeshNode(uuid)
+		uuidStr := chi.URLParam(r, "uuid")
+		meshNodeUUID, err := types.UUIDFromString(uuidStr)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 internal server error"))
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// Erfolgsmeldung senden
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Mesh node - DELETE request successful"))
+		if err := s.meshNodeStore.DeleteMeshNode(meshNodeUUID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

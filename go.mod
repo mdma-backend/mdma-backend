@@ -13,5 +13,6 @@ require (
 
 require (
 	github.com/ajg/form v1.5.1 // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible
 	golang.org/x/sys v0.9.0 // indirect
 )

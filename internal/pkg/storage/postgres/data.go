@@ -255,7 +255,7 @@ func (db DB) GetData(uuid string) (data.Data, error) {
 	d.UUID = uuid
 
 	for rows.Next() {
-		err := rows.Scan(&d.ControllerUuid, &d.Type, &d.CreatedAt, &d.MeasuredAt, &d.Value)
+		err := rows.Scan(&d.MeshNodeUUID, &d.Type, &d.CreatedAt, &d.MeasuredAt, &d.Value)
 		if err != nil {
 			return data.Data{}, err
 		}
