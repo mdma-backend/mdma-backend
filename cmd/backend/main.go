@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node_update"
 	"github.com/mdma-backend/mdma-backend/internal/api/area"
 	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
 	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
@@ -64,7 +65,7 @@ func run() error {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	r.Use(middleware.Logger)          
 	r.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
 		AllowedOrigins: []string{"https://*", "http://*"},
@@ -122,6 +123,7 @@ func run() error {
 		r.Mount("/services", service_account.NewService(db, tokenService))
 	})
 	r.Mount("/roles", role.NewService(db))
+	r.Mount("/mesh-node-updates", mesh_node_update.NewService(db))
 	r.Mount("/areas", area.NewService())
 
 	// Login/Logout

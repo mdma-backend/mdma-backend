@@ -564,7 +564,7 @@ paths:
         400:
           description: Bad Request.
 
-  /update:
+  /mesh-node-updates:
     get:
       tags:
         - Updates
@@ -595,7 +595,7 @@ paths:
         400:
           description: Bad Request.
 
-  /update/{id}:
+  /mesh-node-updates/{id}:
     parameters:
       - $ref: "#/components/parameters/ID"
     get:
@@ -676,24 +676,7 @@ components:
       
     GetUpdate:
       allOf:
-        - $ref: "#/components/schemas/ResourceWithID"
         - $ref: "#/components/schemas/Update"
-
-    UpdateError:
-      type: object
-      properties:
-        controllerId:
-          $ref: "#/components/schemas/ID"
-        updateId:
-          $ref: "#/components/schemas/ID"
-        message:
-          type: string
-          example: Error while updating.
-
-    GetUpdateError:
-      allOf:
-        - $ref: "#/components/schemas/UpdateError"
-      type: object
       properties:
         id:
           $ref: "#/components/schemas/ID"
