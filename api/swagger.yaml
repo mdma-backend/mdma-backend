@@ -532,7 +532,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Permission"
 
-  /update:
+  /mesh-node-updates:
     get:
       tags:
         - Updates
@@ -563,7 +563,7 @@ paths:
         400:
           description: Bad Request.
 
-  /update/{id}:
+  /mesh-node-updates/{id}:
     parameters:
       - $ref: "#/components/parameters/ID"
     get:

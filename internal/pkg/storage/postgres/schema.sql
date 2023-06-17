@@ -79,9 +79,8 @@ CREATE TABLE service_account (
 CREATE TABLE mesh_node_update (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP,
-    data BYTEA NOT NULL,
     version VARCHAR(120) NOT NULL
+    data BYTEA NOT NULL,
 );
 
 CREATE TABLE mesh_node (
