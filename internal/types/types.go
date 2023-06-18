@@ -9,7 +9,11 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-func IDFromString[T ~uint](s string) (T, error) {
+type ID interface {
+	~uint
+}
+
+func IDFromString[T ID](s string) (T, error) {
 	id, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, fmt.Errorf("%s is not an integer", s)

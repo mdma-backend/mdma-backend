@@ -12,7 +12,7 @@ import (
 )
 
 type UserStore interface {
-	UserAccount(types.UserAccountID) (types.UserAccount, error)
+	UserAccountByID(types.UserAccountID) (types.UserAccount, error)
 	AllUserAccounts() ([]types.UserAccount, error)
 	CreateUserAccount(*types.UserAccount, types.Hash, types.Salt) error
 	UpdateUserAccount(types.UserAccountID, *types.UserAccount) error
@@ -67,7 +67,7 @@ func (s service) getAccountUser() http.HandlerFunc {
 			return
 		}
 
-		userAccount, err := s.userStore.UserAccount(userAccountID)
+		userAccount, err := s.userStore.UserAccountByID(userAccountID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

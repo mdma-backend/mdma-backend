@@ -103,7 +103,7 @@ func run() error {
 		r.Use(httprate.LimitByIP(100, 1*time.Minute))
 
 		// Login
-		r.Post("/login", auth.LoginHandler(db, tokenService, hashService))
+		r.Post("/login", auth.LoginHandler(db, db, tokenService, hashService))
 
 		docsPath := "/docs"
 		openAPIPath := docsPath + "/swagger.yaml"
@@ -124,7 +124,7 @@ func run() error {
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
-		r.Use(auth.Middleware(tokenService))
+		r.Use(auth.Middleware(tokenService, db))
 
 		// Mount Features
 		r.Mount("/data", data.NewService(db))

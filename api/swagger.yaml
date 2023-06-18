@@ -442,6 +442,22 @@ paths:
         404:
           description: Not Found.
 
+  /accounts/services/{id}/refresh-token:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      tags:
+        - Service-Accounts
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetServiceAccount"
+        400:
+          description: Bad Request.
+
   /roles:
     get:
       tags:

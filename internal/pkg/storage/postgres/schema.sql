@@ -74,7 +74,7 @@ CREATE TABLE service_account (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     name VARCHAR(120) UNIQUE NOT NULL,
-    token BYTEA NOT NULL
+    token BYTEA
 );
 
 CREATE TABLE mesh_node_update (

@@ -7,6 +7,48 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
+func (db DB) RoleByUserAccountID(uaId types.UserAccountID) (types.Role, error) {
+	var r types.Role
+	var perms []byte
+	if err := db.pool.QueryRow(`
+SELECT r.id, r.created_at, r.updated_at, r.name, json_agg(rp.permission) AS permissions
+FROM role r
+JOIN role_permission rp ON r.id = rp.role_id
+JOIN user_account ua ON r.id = ua.role_id
+WHERE ua.id = $1
+GROUP BY r.id;
+`, uaId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+		return r, err
+	}
+
+	if err := json.Unmarshal(perms, &r.Permissions); err != nil {
+		return r, err
+	}
+
+	return r, nil
+}
+
+func (db DB) RoleByServiceAccountID(saId types.ServiceAccountID) (types.Role, error) {
+	var r types.Role
+	var perms []byte
+	if err := db.pool.QueryRow(`
+SELECT r.id, r.created_at, r.updated_at, r.name, json_agg(rp.permission) AS permissions
+FROM role r
+JOIN role_permission rp ON r.id = rp.role_id
+JOIN service_account sa ON r.id = sa.role_id
+WHERE sa.id = $1
+GROUP BY r.id;
+`, saId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+		return r, err
+	}
+
+	if err := json.Unmarshal(perms, &r.Permissions); err != nil {
+		return r, err
+	}
+
+	return r, nil
+}
+
 func (db DB) RoleByID(roleID types.RoleID) (types.Role, error) {
 	var r types.Role
 	var perms []byte

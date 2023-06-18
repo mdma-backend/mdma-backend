@@ -2,7 +2,6 @@ package types
 
 import (
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 type (
@@ -14,10 +13,17 @@ type Token struct {
 	Value string `json:"token"`
 }
 
+type AccountType string
+
+const (
+	UserAccountType    AccountType = "user"
+	ServiceAccountType AccountType = "service"
+)
+
 type Claims struct {
 	jwt.RegisteredClaims
-	RoleName    string                  `json:"role"`
-	Permissions []permission.Permission `json:"permissions"`
+	AccountType AccountType `json:"accountType"`
+	AccountID   uint        `json:"accountID"`
 }
 
 type HashService interface {

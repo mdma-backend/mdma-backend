@@ -40,12 +40,12 @@ FROM service_account;
 	return serviceAccounts, nil
 }
 
-func (db DB) CreateServiceAccount(sa *types.ServiceAccount, t types.Token) error {
+func (db DB) CreateServiceAccount(sa *types.ServiceAccount) error {
 	if err := db.pool.QueryRow(`
-INSERT INTO service_account (role_id, name, token)
-VALUES ($1, $2, $3)
+INSERT INTO service_account (role_id, name)
+VALUES ($1, $2)
 RETURNING id, created_at;
-`, sa.RoleID, sa.Name, t.Value).Scan(&sa.ID, &sa.CreatedAt); err != nil {
+`, sa.RoleID, sa.Name).Scan(&sa.ID, &sa.CreatedAt); err != nil {
 		return err
 	}
 
@@ -59,6 +59,18 @@ SET role_id = $1, updated_at = now(), name = $2
 WHERE id = $3
 RETURNING updated_at;
 `, sa.RoleID, sa.Name, id).Scan(&sa.UpdatedAt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db DB) UpdateServiceAccountToken(id types.ServiceAccountID, t types.Token) error {
+	if _, err := db.pool.Exec(`
+UPDATE service_account
+SET updated_at = now(), token = $1
+WHERE id = $2;
+`, t.Value, id); err != nil {
 		return err
 	}
 
