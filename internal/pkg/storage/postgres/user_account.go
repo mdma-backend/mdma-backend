@@ -4,7 +4,20 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
-func (db DB) UserAccount(id types.UserAccountID) (types.UserAccount, error) {
+func (db DB) UserAccountByUsername(username string) (types.UserAccount, error) {
+	var ua types.UserAccount
+	if err := db.pool.QueryRow(`
+SELECT id, role_id, created_at, updated_at, username
+FROM user_account
+WHERE username = $1;
+`, username).Scan(&ua.ID, &ua.RoleID, &ua.CreatedAt, &ua.UpdatedAt, &ua.Username); err != nil {
+		return ua, err
+	}
+
+	return ua, nil
+}
+
+func (db DB) UserAccountByID(id types.UserAccountID) (types.UserAccount, error) {
 	var ua types.UserAccount
 	if err := db.pool.QueryRow(`
 SELECT id, role_id, created_at, updated_at, username

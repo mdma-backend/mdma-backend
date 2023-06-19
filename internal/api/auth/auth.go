@@ -12,8 +12,11 @@ import (
 
 const authCookieName = "token"
 
+type UserStore interface {
+	UserAccountByUsername(username string) (types.UserAccount, error)
+}
+
 type AuthStore interface {
-	RoleByUsername(string) (types.Role, error)
 	PasswordHashAndSaltByUsername(string) (types.Hash, types.Salt, error)
 }
 
@@ -29,6 +32,7 @@ type Token struct {
 
 func LoginHandler(
 	authStore AuthStore,
+	userStore UserStore,
 	tokenService types.TokenService,
 	hashService types.HashService,
 ) http.HandlerFunc {
@@ -50,9 +54,9 @@ func LoginHandler(
 			return
 		}
 
-		userRole, err := authStore.RoleByUsername(creds.Username)
+		user, err := userStore.UserAccountByUsername(creds.Username)
 		if err != nil {
-			http.Error(w, "you don't have a role", http.StatusConflict)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -66,8 +70,8 @@ func LoginHandler(
 				Issuer:    "mdma-backend",
 				Subject:   creds.Username,
 			},
-			RoleName:    userRole.Name,
-			Permissions: userRole.Permissions,
+			AccountType: types.UserAccountType,
+			AccountID:   uint(user.ID),
 		}
 
 		token, err := tokenService.SignWithClaims(claims)

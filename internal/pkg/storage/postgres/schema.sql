@@ -29,7 +29,6 @@ CREATE TYPE permission AS ENUM (
 
     'mesh_node_update_create',
     'mesh_node_update_read',
-    'mesh_node_update_delete',
 
     'data_create',
     'data_read',
@@ -64,7 +63,7 @@ CREATE TABLE user_account (
     role_id BIGINT REFERENCES role(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
-    username VARCHAR(120) NOT NULL,
+    username VARCHAR(120) UNIQUE NOT NULL,
     password BYTEA NOT NULL,
     salt BYTEA NOT NULL
 );
@@ -74,30 +73,30 @@ CREATE TABLE service_account (
     role_id BIGINT REFERENCES role(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
-    name VARCHAR(120) NOT NULL,
-    token BYTEA NOT NULL
+    name VARCHAR(120) UNIQUE NOT NULL,
+    token BYTEA
 );
 
 CREATE TABLE mesh_node_update (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version VARCHAR(120) NOT NULL
-    data BYTEA NOT NULL,
+    version VARCHAR(120) UNIQUE NOT NULL,
+    data BYTEA NOT NULL
 );
 
 CREATE TABLE mesh_node (
-    id UUID NOT NULL PRIMARY KEY,
+    id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
     mesh_node_update_id BIGINT REFERENCES mesh_node_update(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
-    location POINT NOT NULL
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL
 );
 
 CREATE TABLE data_type (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP,
-    name VARCHAR(120) NOT NULL
+    name VARCHAR(120) UNIQUE NOT NULL
 );
 
 CREATE TABLE data (
@@ -113,18 +112,17 @@ CREATE TABLE data (
 
 CREATE INDEX idx_user_account_username ON user_account (username);
 CREATE INDEX idx_data_measured_at ON data (measured_at);
-CREATE INDEX idx_mesh_node_location ON mesh_node USING GIST (location);
 CREATE INDEX idx_mesh_node_update_version ON mesh_node_update (version);
 
 -- Controller 
-INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('a53b3f71-f073-4578-9557-92fd19d93bb9', NULL, now(), NULL, '1,1');
-INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('c33ea7b6-68a7-4bc6-b1e9-0c365db74081', NULL, now(), NULL, '2,2');
-INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('f1aef837-04ac-4316-ae1f-0465bc2eb2fa', NULL, now(), NULL, '23,2');
-INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "location") VALUES ('a8957622-acc5-4ddb-bb1f-17e63d3a514f', NULL, now(), NULL, '2,2');
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "latitude", "longitude") VALUES ('a53b3f71-f073-4578-9557-92fd19d93bb9', NULL, now(), NULL, 1, 1);
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "latitude", "longitude") VALUES ('c33ea7b6-68a7-4bc6-b1e9-0c365db74081', NULL, now(), NULL, 2, 2);
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "latitude", "longitude") VALUES ('f1aef837-04ac-4316-ae1f-0465bc2eb2fa', NULL, now(), NULL, 23, 2);
+INSERT INTO "mesh_node" ("id", "mesh_node_update_id", "created_at", "updated_at", "latitude", "longitude") VALUES ('a8957622-acc5-4ddb-bb1f-17e63d3a514f', NULL, now(), NULL, 2, 2);
 
 -- Datatype
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'temperature_dummy');
-INSERT INTO "data_type" ("created_at", "updated_at", "name") VALUES (now(), NULL, 'humidity_dummy');
+INSERT INTO "data_type" ("created_at", "name") VALUES (now(), 'temperature_dummy');
+INSERT INTO "data_type" ("created_at", "name") VALUES (now(), 'humidity_dummy');
 
 -- Data Controller 1
 INSERT INTO "data" ("id", "mesh_node_id", "data_type_id", "created_at", "measured_at", "value")
@@ -161,7 +159,6 @@ INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_delete');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_create');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_read');
-INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'mesh_node_update_delete');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_create');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_read');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'data_delete');

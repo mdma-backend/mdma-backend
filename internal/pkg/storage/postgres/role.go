@@ -1,12 +1,53 @@
 package postgres
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/mdma-backend/mdma-backend/internal/types"
 )
+
+func (db DB) RoleByUserAccountID(uaId types.UserAccountID) (types.Role, error) {
+	var r types.Role
+	var perms []byte
+	if err := db.pool.QueryRow(`
+SELECT r.id, r.created_at, r.updated_at, r.name, json_agg(rp.permission) AS permissions
+FROM role r
+JOIN role_permission rp ON r.id = rp.role_id
+JOIN user_account ua ON r.id = ua.role_id
+WHERE ua.id = $1
+GROUP BY r.id;
+`, uaId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+		return r, err
+	}
+
+	if err := json.Unmarshal(perms, &r.Permissions); err != nil {
+		return r, err
+	}
+
+	return r, nil
+}
+
+func (db DB) RoleByServiceAccountID(saId types.ServiceAccountID) (types.Role, error) {
+	var r types.Role
+	var perms []byte
+	if err := db.pool.QueryRow(`
+SELECT r.id, r.created_at, r.updated_at, r.name, json_agg(rp.permission) AS permissions
+FROM role r
+JOIN role_permission rp ON r.id = rp.role_id
+JOIN service_account sa ON r.id = sa.role_id
+WHERE sa.id = $1
+GROUP BY r.id;
+`, saId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+		return r, err
+	}
+
+	if err := json.Unmarshal(perms, &r.Permissions); err != nil {
+		return r, err
+	}
+
+	return r, nil
+}
 
 func (db DB) RoleByID(roleID types.RoleID) (types.Role, error) {
 	var r types.Role
@@ -51,21 +92,27 @@ FROM role;
 }
 
 func (db DB) CreateRole(role *types.Role) error {
-	query := `
-WITH new_role AS (
-	INSERT INTO role (name)
-	VALUES ($1)
-	RETURNING id
-)
-INSERT INTO role_permission (role_id, permission)
-SELECT id, unnest(array[
-`
-	params := []interface{}{role.Name}
+	tx, err := db.pool.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err = tx.QueryRow(`
+INSERT INTO role (name)
+VALUES ($1)
+RETURNING id, created_at;
+`, role.Name).Scan(&role.ID, &role.CreatedAt); err != nil {
+		return err
+	}
+
+	query := "INSERT INTO role_permission (role_id, permission) values "
+	var params []interface{}
 
 	for i, perm := range role.Permissions {
-		paramIndex := i + 2
-		query += fmt.Sprintf("$%d", paramIndex)
-		params = append(params, perm)
+		paramIndex := len(params) + 1
+		query += fmt.Sprintf("($%d, $%d)", paramIndex, paramIndex+1)
+		params = append(params, role.ID, perm)
 
 		isLastPerm := i == len(role.Permissions)-1
 		if isLastPerm {
@@ -75,29 +122,15 @@ SELECT id, unnest(array[
 		query += ", "
 	}
 
-	query += `
-])::permission
-FROM new_role;
-`
-
-	_, err := db.pool.Exec(query, params...)
-	if err != nil {
+	if _, err := tx.Exec(query, params...); err != nil {
 		return err
 	}
 
-	if err := db.pool.QueryRow(`
-SELECT id, created_at
-FROM role
-WHERE name = $1;
-`, role.Name).Scan(&role.ID, &role.CreatedAt); err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (db DB) UpdateRole(roleID types.RoleID, role *types.Role) error {
-	tx, err := db.pool.BeginTx(context.Background(), nil)
+	tx, err := db.pool.Begin()
 	if err != nil {
 		return err
 	}

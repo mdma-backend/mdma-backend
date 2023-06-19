@@ -17,8 +17,9 @@ type ServiceAccountStore interface {
 	RoleByID(types.RoleID) (types.Role, error)
 	ServiceAccount(types.ServiceAccountID) (types.ServiceAccount, error)
 	AllServiceAccounts() ([]types.ServiceAccount, error)
-	CreateServiceAccount(*types.ServiceAccount, types.Token) error
+	CreateServiceAccount(*types.ServiceAccount) error
 	UpdateServiceAccount(types.ServiceAccountID, *types.ServiceAccount) error
+	UpdateServiceAccountToken(types.ServiceAccountID, types.Token) error
 	DeleteServiceAccount(types.ServiceAccountID) error
 }
 
@@ -39,6 +40,7 @@ func NewService(serviceUserStore ServiceAccountStore, tokenSerive types.TokenSer
 	r.Get("/{id}", auth.RestrictHandlerFunc(s.getAccountService(), permission.ServiceAccountRead))
 	r.Get("/", auth.RestrictHandlerFunc(s.getAllService(), permission.ServiceAccountRead))
 	r.Post("/", auth.RestrictHandlerFunc(s.createAccountService(), permission.ServiceAccountCreate))
+	r.Post("/{id}/refresh-token", auth.RestrictHandlerFunc(s.refreshAccountServiceToken(), permission.ServiceAccountCreate))
 	r.Put("/{id}", auth.RestrictHandlerFunc(s.updateAccountService(), permission.ServiceAccountUpdate))
 	r.Delete("/{id}", auth.RestrictHandlerFunc(s.deleteAccountService(), permission.ServiceAccountDelete))
 
@@ -88,9 +90,8 @@ func (s service) createAccountService() http.HandlerFunc {
 			return
 		}
 
-		role, err := s.serviceAccountStore.RoleByID(serviceAccount.RoleID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		if err := s.serviceAccountStore.CreateServiceAccount(&serviceAccount); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -104,8 +105,8 @@ func (s service) createAccountService() http.HandlerFunc {
 				Issuer:    "mdma-backend",
 				Subject:   serviceAccount.Name,
 			},
-			RoleName:    role.Name,
-			Permissions: role.Permissions,
+			AccountType: types.ServiceAccountType,
+			AccountID:   uint(serviceAccount.ID),
 		}
 
 		token, err := s.tokenService.SignWithClaims(claims)
@@ -113,17 +114,63 @@ func (s service) createAccountService() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		serviceAccount.Token = token.Value
 
-		if err := s.serviceAccountStore.CreateServiceAccount(&serviceAccount, token); err != nil {
+		if err := s.serviceAccountStore.UpdateServiceAccountToken(serviceAccount.ID, token); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		serviceAccount.Token = token.Value
 
 		render.Status(r, http.StatusCreated)
 		render.JSON(w, r, serviceAccount)
 	}
 }
+
+func (s service) refreshAccountServiceToken() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		serviceAccountID, err := types.IDFromString[types.ServiceAccountID](id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		serviceAccount, err := s.serviceAccountStore.ServiceAccount(serviceAccountID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		now := time.Now()
+		expiresAt := now.Add(24 * 7 * 52 * time.Hour) // one year
+		claims := types.Claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(expiresAt),
+				IssuedAt:  jwt.NewNumericDate(now),
+				NotBefore: jwt.NewNumericDate(now),
+				Issuer:    "mdma-backend",
+				Subject:   serviceAccount.Name,
+			},
+			AccountType: types.ServiceAccountType,
+			AccountID:   uint(serviceAccount.ID),
+		}
+
+		token, err := s.tokenService.SignWithClaims(claims)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		serviceAccount.Token = token.Value
+
+		if err = s.serviceAccountStore.UpdateServiceAccountToken(serviceAccountID, token); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		render.JSON(w, r, serviceAccount)
+	}
+}
+
 func (s service) updateAccountService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -147,6 +194,7 @@ func (s service) updateAccountService() http.HandlerFunc {
 		render.JSON(w, r, serviceAccount)
 	}
 }
+
 func (s service) deleteAccountService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")

@@ -54,12 +54,12 @@ type Measurement struct {
 }
 
 type Data struct {
-	UUID           string `json:"uuid"`
-	ControllerUuid string `json:"meshNodeUUID"`
-	Type           string `json:"type"`
-	CreatedAt      string `json:"createdAt"`
-	MeasuredAt     string `json:"measuredAt"`
-	Value          string `json:"value"`
+	UUID         string `json:"uuid"`
+	MeshNodeUUID string `json:"meshNodeUUID"`
+	Type         string `json:"type"`
+	CreatedAt    string `json:"createdAt"`
+	MeasuredAt   string `json:"measuredAt"`
+	Value        string `json:"value"`
 }
 
 func NewService(dataStore DataStore) http.Handler {

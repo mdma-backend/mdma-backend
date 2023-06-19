@@ -72,9 +72,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/GetMeshNode"
+                $ref: "#/components/schemas/GetMeshNode"
 
   /mesh-nodes/{uuid}/data:
     parameters:
@@ -94,7 +92,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
+                type: object
                 items:
                   $ref: "#/components/schemas/GetSingleData"
 
@@ -444,6 +442,22 @@ paths:
         404:
           description: Not Found.
 
+  /accounts/services/{id}/refresh-token:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      tags:
+        - Service-Accounts
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetServiceAccount"
+        400:
+          description: Bad Request.
+
   /roles:
     get:
       tags:
@@ -621,7 +635,7 @@ components:
     
     ID:
       type: integer
-      example: 1337
+      example: 1
 
     ResourceWithUUID:
       type: object

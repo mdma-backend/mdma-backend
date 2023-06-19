@@ -13,23 +13,24 @@ var (
 	PermissionsCtxKey = &struct{}{}
 )
 
-func Middleware(tokenService types.TokenService, excludedPaths ...string) func(next http.Handler) http.Handler {
+type RoleStore interface {
+	RoleByUserAccountID(uaId types.UserAccountID) (types.Role, error)
+	RoleByServiceAccountID(saId types.ServiceAccountID) (types.Role, error)
+}
+
+func Middleware(
+	tokenService types.TokenService,
+	roleStore RoleStore,
+) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			for _, path := range excludedPaths {
-				if r.URL.Path == path {
-					next.ServeHTTP(w, r)
-					return
-				}
-			}
-
 			var tokenStr string
 			if bearerStr := r.Header.Get("Authorization"); bearerStr != "" {
 				tokenStr = strings.TrimPrefix(bearerStr, "Bearer ")
 			} else {
 				cookie, err := r.Cookie(authCookieName)
 				if err != nil {
-					http.Error(w, err.Error(), http.StatusUnauthorized)
+					http.Error(w, "no token in header or cookie", http.StatusUnauthorized)
 					return
 				}
 
@@ -42,8 +43,27 @@ func Middleware(tokenService types.TokenService, excludedPaths ...string) func(n
 				return
 			}
 
+			var role types.Role
+			switch claims.AccountType {
+			case types.UserAccountType:
+				role, err = roleStore.RoleByUserAccountID(types.UserAccountID(claims.AccountID))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+			case types.ServiceAccountType:
+				role, err = roleStore.RoleByServiceAccountID(types.ServiceAccountID(claims.AccountID))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+			default:
+				http.Error(w, "invalid account type", http.StatusBadRequest)
+				return
+			}
+
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, PermissionsCtxKey, claims.Permissions)
+			ctx = context.WithValue(ctx, PermissionsCtxKey, role.Permissions)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
