@@ -10,19 +10,40 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
-type service struct {
-	handler http.Handler
-}
-
 type Area struct {
 	AreaID        int      `json:"areaId"`
 	MeshNodeUUIDs []string `json:"meshNodeUUIDs"`
 }
 
 var areas = map[uint]Area{
-	1: {AreaID: 1, MeshNodeUUIDs: []string{"a53b3f71-f073-4578-9557-92fd19d93bb9", "c33ea7b6-68a7-4bc6-b1e9-0c365db74081", "f1aef837-04ac-4316-ae1f-0465bc2eb2fa"}},
-	2: {AreaID: 2, MeshNodeUUIDs: []string{"f1aef837-04ac-4316-ae1f-0465bc2eb2fa", "a8957622-acc5-4ddb-bb1f-17e63d3a514f"}},
-	3: {AreaID: 3, MeshNodeUUIDs: []string{"a53b3f71-f073-4578-9557-92fd19d93bb9", "c33ea7b6-68a7-4bc6-b1e9-0c365db74081", "f1aef837-04ac-4316-ae1f-0465bc2eb2fa", "a8957622-acc5-4ddb-bb1f-17e63d3a514f"}},
+	1: {
+		AreaID: 1,
+		MeshNodeUUIDs: []string{
+			"a53b3f71-f073-4578-9557-92fd19d93bb9",
+			"c33ea7b6-68a7-4bc6-b1e9-0c365db74081",
+			"f1aef837-04ac-4316-ae1f-0465bc2eb2fa",
+		},
+	},
+	2: {
+		AreaID: 2,
+		MeshNodeUUIDs: []string{
+			"f1aef837-04ac-4316-ae1f-0465bc2eb2fa",
+			"a8957622-acc5-4ddb-bb1f-17e63d3a514f",
+		},
+	},
+	3: {
+		AreaID: 3,
+		MeshNodeUUIDs: []string{
+			"a53b3f71-f073-4578-9557-92fd19d93bb9",
+			"c33ea7b6-68a7-4bc6-b1e9-0c365db74081",
+			"f1aef837-04ac-4316-ae1f-0465bc2eb2fa",
+			"a8957622-acc5-4ddb-bb1f-17e63d3a514f",
+		},
+	},
+}
+
+type service struct {
+	handler http.Handler
 }
 
 func NewService() http.Handler {
@@ -63,6 +84,11 @@ func (s service) getArea() http.HandlerFunc {
 
 func (s service) getAreas() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, r, areas)
+		var aa []Area
+		for _, a := range areas {
+			aa = append(aa, a)
+		}
+
+		render.JSON(w, r, aa)
 	}
 }
