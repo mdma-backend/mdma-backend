@@ -15,7 +15,7 @@ import (
 
 type ServiceAccountStore interface {
 	RoleByID(types.RoleID) (types.Role, error)
-	ServiceAccount(types.ServiceAccountID) (types.ServiceAccount, error)
+	ServiceAccountByID(types.ServiceAccountID) (types.ServiceAccount, error)
 	AllServiceAccounts() ([]types.ServiceAccount, error)
 	CreateServiceAccount(*types.ServiceAccount) error
 	UpdateServiceAccount(types.ServiceAccountID, *types.ServiceAccount) error
@@ -72,7 +72,7 @@ func (s service) getAccountService() http.HandlerFunc {
 			return
 		}
 
-		serviceAccount, err := s.serviceAccountStore.ServiceAccount(serviceAccountID)
+		serviceAccount, err := s.serviceAccountStore.ServiceAccountByID(serviceAccountID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -135,7 +135,7 @@ func (s service) refreshAccountServiceToken() http.HandlerFunc {
 			return
 		}
 
-		serviceAccount, err := s.serviceAccountStore.ServiceAccount(serviceAccountID)
+		serviceAccount, err := s.serviceAccountStore.ServiceAccountByID(serviceAccountID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

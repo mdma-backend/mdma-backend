@@ -89,7 +89,10 @@ func LoginHandler(
 		}
 		http.SetCookie(w, cookie)
 
-		render.JSON(w, r, token)
+		render.JSON(w, r, types.LoginReponse{
+			Token:  token,
+			RoleID: user.RoleID,
+		})
 	}
 }
 

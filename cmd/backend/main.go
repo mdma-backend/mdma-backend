@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mdma-backend/mdma-backend/internal/api/area"
+	"github.com/mdma-backend/mdma-backend/internal/api/me"
 	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node_update"
 	"github.com/mdma-backend/mdma-backend/internal/api/metrics"
 	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
@@ -133,6 +134,7 @@ func run() error {
 		r.Handle("/metrics", promhttp.Handler())
 
 		// Mount Features
+		r.Mount("/me", me.NewService(db, db))
 		r.Mount("/data", data.NewService(db))
 		r.Mount("/mesh-nodes", mesh_node.NewService(db))
 		r.Route("/accounts", func(r chi.Router) {
