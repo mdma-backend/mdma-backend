@@ -340,6 +340,19 @@ paths:
                 $ref: "#/components/schemas/GetUserAccount"
         400:
           description: Bad Request.
+    post:
+      tags:
+        - User-Accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChange"
+      responses:
+        200:
+          description: Created.
+        400:
+          description: Bad Request.
     put:
       tags:
         - User-Accounts
@@ -624,6 +637,18 @@ paths:
                 $ref: "#/components/schemas/GetUpdate"
         400:
           description: Bad Request.
+    
+  /me:
+    get:
+      tags:
+        - Users
+      responses:
+        200:
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
 
 # SCHEMAS ####################################################################################
 
@@ -660,6 +685,25 @@ components:
         updatedAt:
           type: string
           format: date-time
+      
+    Me:
+      type: object
+      properties:
+        accountType:
+          type: string
+          example: user
+        accountId:
+          type: integer
+          example: 1
+        role:
+          $ref: "#/components/schemas/Update"
+      
+    PasswordChange:
+      type: object
+      properties:
+        password:
+          type: string
+          example: password123
     
     Credentials:
       type: object

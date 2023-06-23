@@ -5,9 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/mdma-backend/mdma-backend/internal/api/auth"
 	"github.com/mdma-backend/mdma-backend/internal/types"
-	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
 type Area struct {
@@ -52,8 +50,8 @@ func NewService() http.Handler {
 		handler: r,
 	}
 
-	r.Get("/", auth.RestrictHandlerFunc(s.getAreas(), permission.AreaRead))
-	r.Get("/{id}", auth.RestrictHandlerFunc(s.getArea(), permission.AreaRead))
+	r.Get("/", s.getAreas())
+	r.Get("/{id}", s.getArea())
 
 	return s
 }
