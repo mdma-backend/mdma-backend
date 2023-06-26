@@ -1,6 +1,11 @@
 package postgres
 
-import "github.com/mdma-backend/mdma-backend/internal/types"
+import (
+	"database/sql"
+	"errors"
+
+	"github.com/mdma-backend/mdma-backend/internal/types"
+)
 
 func (db DB) MeshNodeUpdateByID(id types.MeshNodeUpdateID) (types.MeshNodeUpdate, error) {
 	var u types.MeshNodeUpdate
@@ -8,7 +13,9 @@ func (db DB) MeshNodeUpdateByID(id types.MeshNodeUpdateID) (types.MeshNodeUpdate
 SELECT id, created_at, version, data
 FROM mesh_node_update
 WHERE id = $1;
-`, id).Scan(&u.ID, &u.CreatedAt, &u.Version, &u.Data); err != nil {
+`, id).Scan(&u.ID, &u.CreatedAt, &u.Version, &u.Data); errors.Is(err, sql.ErrNoRows) {
+		return u, types.ErrNotFound
+	} else if err != nil {
 		return u, err
 	}
 

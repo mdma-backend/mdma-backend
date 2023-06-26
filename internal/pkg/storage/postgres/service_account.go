@@ -1,6 +1,9 @@
 package postgres
 
 import (
+	"database/sql"
+	"errors"
+
 	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
@@ -10,7 +13,9 @@ func (db DB) ServiceAccountByID(id types.ServiceAccountID) (types.ServiceAccount
 SELECT id, role_id, created_at, updated_at, name, token
 FROM service_account
 WHERE id = $1;
-`, id).Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Name, &sa.Token); err != nil {
+`, id).Scan(&sa.ID, &sa.RoleID, &sa.CreatedAt, &sa.UpdatedAt, &sa.Name, &sa.Token); errors.Is(err, sql.ErrNoRows) {
+		return sa, types.ErrNotFound
+	} else if err != nil {
 		return sa, err
 	}
 
@@ -58,7 +63,9 @@ UPDATE service_account
 SET role_id = $1, updated_at = now(), name = $2
 WHERE id = $3
 RETURNING updated_at;
-`, sa.RoleID, sa.Name, id).Scan(&sa.UpdatedAt); err != nil {
+`, sa.RoleID, sa.Name, id).Scan(&sa.UpdatedAt); errors.Is(err, sql.ErrNoRows) {
+		return types.ErrNotFound
+	} else if err != nil {
 		return err
 	}
 
@@ -66,23 +73,33 @@ RETURNING updated_at;
 }
 
 func (db DB) UpdateServiceAccountToken(id types.ServiceAccountID, t types.Token) error {
-	if _, err := db.pool.Exec(`
+	res, err := db.pool.Exec(`
 UPDATE service_account
 SET updated_at = now(), token = $1
 WHERE id = $2;
-`, t.Value, id); err != nil {
+`, t.Value, id)
+	if err != nil {
 		return err
+	}
+
+	if num, err := res.RowsAffected(); err == nil && num == 0 {
+		return types.ErrNotFound
 	}
 
 	return nil
 }
 
 func (db DB) DeleteServiceAccount(id types.ServiceAccountID) error {
-	if _, err := db.pool.Exec(`
+	res, err := db.pool.Exec(`
 DELETE FROM service_account
 WHERE id = $1;
-`, id); err != nil {
+`, id)
+	if err != nil {
 		return err
+	}
+
+	if num, err := res.RowsAffected(); err == nil && num == 0 {
+		return types.ErrNotFound
 	}
 
 	return nil

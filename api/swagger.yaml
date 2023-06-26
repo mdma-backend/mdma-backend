@@ -9,6 +9,7 @@ servers:
 # ENDPOINTS ########################################################################
 
 paths:
+
   /mesh-nodes/{uuid}:
     parameters:
       - $ref: "#/components/parameters/UUID"
@@ -22,6 +23,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetMeshNode"
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
+
     put:
       tags:
         - Mesh-Nodes
@@ -37,12 +45,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetMeshNode"
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
+
     delete:
       tags:
         - Mesh-Nodes
       responses:
         204:
           description: OK.
+        400:
+          description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
 
   /mesh-nodes:
     get:
@@ -58,6 +79,9 @@ paths:
                 minItems: 1
                 items:
                   $ref: "#/components/schemas/GetMeshNode"
+        500:
+          description: Internal Server Error.
+
     post:
       tags:
         - Mesh-Nodes
@@ -73,6 +97,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetMeshNode"
+        400:
+          description: Bad Request.
+        500:
+          description: Internal Server Error.
 
   /mesh-nodes/{uuid}/data:
     parameters:
@@ -95,6 +123,10 @@ paths:
                 type: object
                 items:
                   $ref: "#/components/schemas/GetSingleData"
+        400:
+          description: Bad Request.
+        500:
+          description: Internal Server Error.
 
   /mesh-nodes/{uuid}/data-list:
     parameters:
@@ -119,6 +151,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/GetSingleData"
+        400:
+          description: Bad Request.
+        500:
+          description: Internal Server Error.
 
   /data/aggregated:
     get:
@@ -186,6 +222,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetAggregatedData"
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        500:
+          description: Internal Server Error.     
 
   /data:
     get:
@@ -225,6 +267,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetData"
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        500:
+          description: Internal Server Error.   
 
   /data/{uuid}:
     parameters:
@@ -238,19 +286,22 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetSingleData"   
+                $ref: "#/components/schemas/GetSingleData"
+        204:
+          description: No Content.
         400:
           description: Bad Request.
+        500:
+          description: Internal Server Error.
+
     delete:
       tags:
         - Data
       responses:
         204:
           description: No Content.
-        400:
-          description: Bad Request.
-        404:
-          description: Not Found.
+        500:
+          description: Internal Server Error.
 
   /data/types:
     get:
@@ -265,6 +316,10 @@ paths:
                 type: array
                 items:
                   type: string
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
   
   /login:
     post:
@@ -285,6 +340,11 @@ paths:
                 $ref: "#/components/schemas/Token"
         400:
           description: Bad Request.
+        401:
+          description: Unauthorized.
+        500:
+          description: Internal Server Error.
+
   /logout:
     delete:
       tags:
