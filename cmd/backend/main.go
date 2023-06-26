@@ -124,6 +124,9 @@ func run() error {
 			Title:   "FoREST API Docs",
 		}))
 		r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
+
+		// Data Get
+		r.Mount("/data", data.NewGetService(db))
 	})
 
 	// Protected routes
@@ -135,7 +138,7 @@ func run() error {
 
 		// Mount Features
 		r.Mount("/me", me.NewService(db, db))
-		r.Mount("/data", data.NewService(db))
+		r.Mount("/data", data.NewDeleteService(db))
 		r.Mount("/mesh-nodes", mesh_node.NewService(db))
 		r.Route("/accounts", func(r chi.Router) {
 			r.Mount("/users", user_account.NewService(db, hashService))
