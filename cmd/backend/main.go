@@ -11,9 +11,12 @@ import (
 	"time"
 
 	"github.com/mdma-backend/mdma-backend/internal/api/area"
+	"github.com/mdma-backend/mdma-backend/internal/api/me"
 	"github.com/mdma-backend/mdma-backend/internal/api/mesh_node_update"
+	"github.com/mdma-backend/mdma-backend/internal/api/metrics"
 	"github.com/mdma-backend/mdma-backend/internal/api/service_account"
 	"github.com/mdma-backend/mdma-backend/internal/api/user_account"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -67,6 +70,7 @@ func main() {
 func run() error {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
+	r.Use(metrics.Middleware)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
@@ -126,7 +130,11 @@ func run() error {
 	r.Group(func(r chi.Router) {
 		r.Use(auth.Middleware(tokenService, db))
 
+		// Metrics Handler
+		r.Handle("/metrics", promhttp.Handler())
+
 		// Mount Features
+		r.Mount("/me", me.NewService(db, db))
 		r.Mount("/data", data.NewService(db))
 		r.Mount("/mesh-nodes", mesh_node.NewService(db))
 		r.Route("/accounts", func(r chi.Router) {

@@ -9,6 +9,11 @@ type (
 	Salt []byte
 )
 
+type LoginReponse struct {
+	Token
+	RoleID *RoleID `json:"roleId,omitempty"`
+}
+
 type Token struct {
 	Value string `json:"token"`
 }
@@ -24,6 +29,12 @@ type Claims struct {
 	jwt.RegisteredClaims
 	AccountType AccountType `json:"accountType"`
 	AccountID   uint        `json:"accountID"`
+}
+
+type AccountInfo struct {
+	AccountType AccountType `json:"accountType"`
+	AccountID   uint        `json:"accountID"`
+	Role        Role        `json:"role"`
 }
 
 type HashService interface {

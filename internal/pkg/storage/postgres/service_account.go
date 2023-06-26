@@ -4,7 +4,7 @@ import (
 	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
-func (db DB) ServiceAccount(id types.ServiceAccountID) (types.ServiceAccount, error) {
+func (db DB) ServiceAccountByID(id types.ServiceAccountID) (types.ServiceAccount, error) {
 	var sa types.ServiceAccount
 	if err := db.pool.QueryRow(`
 SELECT id, role_id, created_at, updated_at, name, token

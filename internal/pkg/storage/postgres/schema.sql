@@ -176,6 +176,8 @@ INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_updat
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'role_delete');
 INSERT INTO "role_permission" ("role_id", "permission") VALUES ('1', 'area_read');
 
+INSERT INTO "role" ("name") VALUES ('förster');
+
 INSERT INTO "user_account" ("role_id", "username", "password", "salt") VALUES ('1', 'H4r4ldD3rH4ck3r', decode('7g5FK95ihY7C7KuZAcyA4r8+pFyg7rFEfadWoWREp1w=', 'base64'), decode('V0P7HrHEEm7Q1F0VLPMbt1BHBFtKLCFJMnhZJivV5Ms=', 'base64'));
 
 COMMIT;

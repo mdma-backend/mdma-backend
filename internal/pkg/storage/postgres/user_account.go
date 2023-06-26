@@ -65,6 +65,19 @@ RETURNING id, created_at;
 	return nil
 }
 
+func (db DB) UpdateUserAccountPassword(id types.UserAccountID, h types.Hash, s types.Salt) error {
+	if _, err := db.pool.Exec(`
+UPDATE user_account
+SET updated_at = now(), password = $1, salt = $2
+WHERE id = $3
+RETURNING updated_at;
+`, id, h, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (db DB) UpdateUserAccount(id types.UserAccountID, ua *types.UserAccount) error {
 	if err := db.pool.QueryRow(`
 UPDATE user_account

@@ -16,6 +16,7 @@ type UserStore interface {
 	AllUserAccounts() ([]types.UserAccount, error)
 	CreateUserAccount(*types.UserAccount, types.Hash, types.Salt) error
 	UpdateUserAccount(types.UserAccountID, *types.UserAccount) error
+	UpdateUserAccountPassword(types.UserAccountID, types.Hash, types.Salt) error
 	DeleteUserAccount(types.UserAccountID) error
 }
 
@@ -36,7 +37,8 @@ func NewService(userStore UserStore, hashService types.HashService) http.Handler
 	r.Get("/{id}", auth.RestrictHandlerFunc(s.getAccountUser(), permission.UserAccountRead))
 	r.Get("/", auth.RestrictHandlerFunc(s.getAllUsers(), permission.UserAccountRead))
 	r.Post("/", auth.RestrictHandlerFunc(s.createAccountUser(), permission.UserAccountCreate))
-	r.Put("/{id}", auth.RestrictHandlerFunc(s.updateAccountUser(), permission.UserAccountUpdate))
+	r.Post("/{id}/change-password", s.postChangePassword())
+	r.Put("/{id}", s.updateAccountUser())
 	r.Delete("/{id}", auth.RestrictHandlerFunc(s.deleteAccountUser(), permission.UserAccountDelete))
 
 	return s
@@ -104,12 +106,82 @@ func (s service) createAccountUser() http.HandlerFunc {
 	}
 }
 
+func (s service) postChangePassword() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		userAccountID, err := types.IDFromString[types.UserAccountID](id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		info, ok := r.Context().Value(auth.AccountInfoCtxKey).(types.AccountInfo)
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		var hasPermission bool
+		for _, p := range info.Role.Permissions {
+			if p == permission.UserAccountUpdate {
+				hasPermission = true
+				break
+			}
+		}
+
+		if !hasPermission &&
+			info.AccountType == types.UserAccountType &&
+			userAccountID != types.UserAccountID(info.AccountID) {
+			http.Error(w, "missing permission or user id did not match", http.StatusUnauthorized)
+			return
+		}
+
+		var userAccount types.UserAccount
+		if err := json.NewDecoder(r.Body).Decode(&userAccount); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		hash, salt, err := s.hashService.Hash(userAccount.Password)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err := s.userStore.UpdateUserAccountPassword(userAccountID, hash, salt); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 func (s service) updateAccountUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		userAccountID, err := types.IDFromString[types.UserAccountID](id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		info, ok := r.Context().Value(auth.AccountInfoCtxKey).(types.AccountInfo)
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		var hasPermission bool
+		for _, p := range info.Role.Permissions {
+			if p == permission.UserAccountUpdate {
+				hasPermission = true
+				break
+			}
+		}
+
+		if !hasPermission &&
+			info.AccountType == types.UserAccountType &&
+			userAccountID != types.UserAccountID(info.AccountID) {
+			http.Error(w, "missing permission or user id did not match", http.StatusUnauthorized)
 			return
 		}
 
