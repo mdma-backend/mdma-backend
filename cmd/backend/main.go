@@ -125,8 +125,7 @@ func run() error {
 		}))
 		r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
 
-		// Data Get
-		r.Mount("/data", data.NewGetService(db))
+		r.Mount("/data", data.NewService(db, tokenService, db))
 	})
 
 	// Protected routes
@@ -138,7 +137,6 @@ func run() error {
 
 		// Mount Features
 		r.Mount("/me", me.NewService(db, db))
-		r.Mount("/data", data.NewDeleteService(db))
 		r.Mount("/mesh-nodes", mesh_node.NewService(db))
 		r.Route("/accounts", func(r chi.Router) {
 			r.Mount("/users", user_account.NewService(db, hashService))
