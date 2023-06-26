@@ -641,7 +641,7 @@ paths:
   /me:
     get:
       tags:
-        - Users
+        - User-Accounts
       responses:
         200:
           description: OK.
@@ -696,7 +696,7 @@ components:
           type: integer
           example: 1
         role:
-          $ref: "#/components/schemas/Update"
+          $ref: "#/components/schemas/GetRole"
       
     PasswordChange:
       type: object
