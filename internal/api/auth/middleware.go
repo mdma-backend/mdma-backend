@@ -20,45 +20,61 @@ type RoleStore interface {
 	RoleByServiceAccountID(saId types.ServiceAccountID) (types.Role, error)
 }
 
+func JWTHandlerFunc(
+	next http.HandlerFunc,
+	tokenService types.TokenService,
+	roleStore RoleStore,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims, err := claimsFromRequest(r, tokenService)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		var role types.Role
+		switch claims.AccountType {
+		case types.UserAccountType:
+			role, err = roleStore.RoleByUserAccountID(types.UserAccountID(claims.AccountID))
+		case types.ServiceAccountType:
+			role, err = roleStore.RoleByServiceAccountID(types.ServiceAccountID(claims.AccountID))
+		default:
+			http.Error(w, "invalid account type", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(w, "account has no role", http.StatusBadRequest)
+			return
+		}
+
+		info := types.AccountInfo{
+			AccountType: claims.AccountType,
+			AccountID:   claims.AccountID,
+			Role:        role,
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, AccountInfoCtxKey, info)
+		r = r.WithContext(ctx)
+
+		next(w, r)
+	}
+}
+
+func JWTHandler(
+	next http.Handler,
+	tokenService types.TokenService,
+	roleStore RoleStore,
+) http.Handler {
+	return http.HandlerFunc(JWTHandlerFunc(next.ServeHTTP, tokenService, roleStore))
+}
+
 func Middleware(
 	tokenService types.TokenService,
 	roleStore RoleStore,
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, err := claimsFromRequest(r, tokenService)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-
-			var role types.Role
-			switch claims.AccountType {
-			case types.UserAccountType:
-				role, err = roleStore.RoleByUserAccountID(types.UserAccountID(claims.AccountID))
-			case types.ServiceAccountType:
-				role, err = roleStore.RoleByServiceAccountID(types.ServiceAccountID(claims.AccountID))
-			default:
-				http.Error(w, "invalid account type", http.StatusBadRequest)
-				return
-			}
-			if err != nil {
-				http.Error(w, "account has no role", http.StatusBadRequest)
-				return
-			}
-
-			info := types.AccountInfo{
-				AccountType: claims.AccountType,
-				AccountID:   claims.AccountID,
-				Role:        role,
-			}
-
-			ctx := r.Context()
-			ctx = context.WithValue(ctx, AccountInfoCtxKey, info)
-			r = r.WithContext(ctx)
-
-			next.ServeHTTP(w, r)
-		})
+		return JWTHandler(next, tokenService, roleStore)
 	}
 }
 

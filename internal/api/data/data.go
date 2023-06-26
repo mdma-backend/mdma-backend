@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mdma-backend/mdma-backend/internal/api/auth"
+	"github.com/mdma-backend/mdma-backend/internal/types"
 	"github.com/mdma-backend/mdma-backend/internal/types/permission"
 )
 
@@ -62,7 +63,7 @@ type Data struct {
 	Value        string `json:"value"`
 }
 
-func NewGetService(dataStore DataStore) http.Handler {
+func NewService(dataStore DataStore, tokenService types.TokenService, roleService auth.RoleStore) http.Handler {
 	r := chi.NewRouter()
 	s := service{
 		handler:   r,
@@ -74,17 +75,11 @@ func NewGetService(dataStore DataStore) http.Handler {
 	r.Get("/types", s.getDataTypes())
 	r.Get("/aggregated", s.getAggregatedData())
 
-	return s
-}
-
-func NewDeleteService(dataStore DataStore) http.Handler {
-	r := chi.NewRouter()
-	s := service{
-		handler:   r,
-		dataStore: dataStore,
-	}
-
-	r.Delete("/{uuid}", auth.RestrictHandlerFunc(s.deleteData(), permission.DataDelete))
+	r.Delete("/{uuid}", auth.JWTHandlerFunc(
+		auth.RestrictHandlerFunc(s.deleteData(), permission.DataDelete),
+		tokenService,
+		roleService,
+	))
 
 	return s
 }
