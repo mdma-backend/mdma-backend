@@ -117,10 +117,10 @@ func claimsFromRequest(r *http.Request, tokenService types.TokenService) (*types
 }
 
 func permissionsFromContext(ctx context.Context) []permission.Permission {
-	role, ok := ctx.Value(AccountInfoCtxKey).(types.Role)
+	info, ok := ctx.Value(AccountInfoCtxKey).(types.AccountInfo)
 	if !ok {
 		return nil
 	}
 
-	return role.Permissions
+	return info.Role.Permissions
 }
