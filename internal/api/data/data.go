@@ -62,7 +62,7 @@ type Data struct {
 	Value        string `json:"value"`
 }
 
-func NewService(dataStore DataStore) http.Handler {
+func NewGetService(dataStore DataStore) http.Handler {
 	r := chi.NewRouter()
 	s := service{
 		handler:   r,
@@ -73,6 +73,17 @@ func NewService(dataStore DataStore) http.Handler {
 	r.Get("/{uuid}", s.getData())
 	r.Get("/types", s.getDataTypes())
 	r.Get("/aggregated", s.getAggregatedData())
+
+	return s
+}
+
+func NewDeleteService(dataStore DataStore) http.Handler {
+	r := chi.NewRouter()
+	s := service{
+		handler:   r,
+		dataStore: dataStore,
+	}
+
 	r.Delete("/{uuid}", auth.RestrictHandlerFunc(s.deleteData(), permission.DataDelete))
 
 	return s
