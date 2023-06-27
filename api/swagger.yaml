@@ -446,6 +446,8 @@ paths:
           description: Internal Server Error.
 
   /accounts/users/{id}/change-password:
+    parameters:
+      - $ref: "#/components/parameters/ID"
     post:
       tags:
         - User-Accounts
