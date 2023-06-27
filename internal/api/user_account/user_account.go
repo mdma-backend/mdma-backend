@@ -2,6 +2,7 @@ package user_account
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -70,7 +71,10 @@ func (s service) getAccountUser() http.HandlerFunc {
 		}
 
 		userAccount, err := s.userStore.UserAccountByID(userAccountID)
-		if err != nil {
+		if errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -148,10 +152,15 @@ func (s service) postChangePassword() http.HandlerFunc {
 			return
 		}
 
-		if err := s.userStore.UpdateUserAccountPassword(userAccountID, hash, salt); err != nil {
+		if err := s.userStore.UpdateUserAccountPassword(userAccountID, hash, salt); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
@@ -191,7 +200,10 @@ func (s service) updateAccountUser() http.HandlerFunc {
 			return
 		}
 
-		if err = s.userStore.UpdateUserAccount(userAccountID, &userAccount); err != nil {
+		if err = s.userStore.UpdateUserAccount(userAccountID, &userAccount); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -209,7 +221,10 @@ func (s service) deleteAccountUser() http.HandlerFunc {
 			return
 		}
 
-		if err := s.userStore.DeleteUserAccount(userAccountID); err != nil {
+		if err := s.userStore.DeleteUserAccount(userAccountID); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

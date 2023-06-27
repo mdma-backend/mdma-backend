@@ -1,7 +1,9 @@
 package postgres
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 
 	"github.com/mdma-backend/mdma-backend/internal/types"
 )
@@ -16,7 +18,9 @@ JOIN role_permission rp ON r.id = rp.role_id
 JOIN user_account ua ON r.id = ua.role_id
 WHERE ua.username = $1
 GROUP BY r.id;
-`, username).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+`, username).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); errors.Is(err, sql.ErrNoRows) {
+		return r, types.ErrNotFound
+	} else if err != nil {
 		return r, err
 	}
 
@@ -34,7 +38,9 @@ func (db DB) PasswordHashAndSaltByUsername(username string) (types.Hash, types.S
 SELECT password, salt
 FROM user_account
 WHERE username = $1;
-`, username).Scan(&hash, &salt); err != nil {
+`, username).Scan(&hash, &salt); errors.Is(err, sql.ErrNoRows) {
+		return nil, nil, types.ErrNotFound
+	} else if err != nil {
 		return nil, nil, err
 	}
 

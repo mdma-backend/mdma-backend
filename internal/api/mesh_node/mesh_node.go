@@ -2,6 +2,7 @@ package mesh_node
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -71,7 +72,10 @@ func (s service) getMeshNode() http.HandlerFunc {
 		}
 
 		meshNode, err := s.meshNodeStore.MeshNodeById(meshNodeUUID)
-		if err != nil {
+		if errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -164,7 +168,10 @@ func (s service) putMeshNode() http.HandlerFunc {
 			return
 		}
 
-		if err := s.meshNodeStore.UpdateMeshNode(meshNodeUUID, &meshNode); err != nil {
+		if err := s.meshNodeStore.UpdateMeshNode(meshNodeUUID, &meshNode); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -183,7 +190,10 @@ func (s service) deleteMeshNode() http.HandlerFunc {
 			return
 		}
 
-		if err := s.meshNodeStore.DeleteMeshNode(meshNodeUUID); err != nil {
+		if err := s.meshNodeStore.DeleteMeshNode(meshNodeUUID); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

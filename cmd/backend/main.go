@@ -102,7 +102,7 @@ func run() error {
 		KeyLen:  32,
 	}
 
-	// Unprotected routes
+	// Unprotected Routes
 	r.Group(func(r chi.Router) {
 		r.Use(httprate.LimitByIP(100, 1*time.Minute))
 
@@ -125,10 +125,12 @@ func run() error {
 		}))
 		r.Get(openAPIPath, api.SwaggerSpecsHandlerFunc())
 
+		// Mount Features
 		r.Mount("/data", data.NewService(db, tokenService, db))
+		r.Mount("/areas", area.NewService())
 	})
 
-	// Protected routes
+	// Protected Routes
 	r.Group(func(r chi.Router) {
 		r.Use(auth.Middleware(tokenService, db))
 
@@ -144,7 +146,6 @@ func run() error {
 		})
 		r.Mount("/roles", role.NewService(db))
 		r.Mount("/mesh-node-updates", mesh_node_update.NewService(db))
-		r.Mount("/areas", area.NewService())
 		r.Delete("/logout", auth.LogoutHandler())
 	})
 

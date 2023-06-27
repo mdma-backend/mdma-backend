@@ -63,7 +63,6 @@ func (s service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s service) getArea() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idParam := chi.URLParam(r, "id")
-
 		id, err := types.IDFromString[uint](idParam)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)

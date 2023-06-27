@@ -2,6 +2,7 @@ package mesh_node_update
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -62,7 +63,10 @@ func (s service) getMeshNodeUpdate() http.HandlerFunc {
 		}
 
 		meshNodeUpdate, err := s.meshNodeUpdateStore.MeshNodeUpdateByID(meshNodeUpdateID)
-		if err != nil {
+		if errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

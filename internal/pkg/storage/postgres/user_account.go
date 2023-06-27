@@ -1,6 +1,9 @@
 package postgres
 
 import (
+	"database/sql"
+	"errors"
+
 	"github.com/mdma-backend/mdma-backend/internal/types"
 )
 
@@ -10,7 +13,9 @@ func (db DB) UserAccountByUsername(username string) (types.UserAccount, error) {
 SELECT id, role_id, created_at, updated_at, username
 FROM user_account
 WHERE username = $1;
-`, username).Scan(&ua.ID, &ua.RoleID, &ua.CreatedAt, &ua.UpdatedAt, &ua.Username); err != nil {
+`, username).Scan(&ua.ID, &ua.RoleID, &ua.CreatedAt, &ua.UpdatedAt, &ua.Username); errors.Is(err, sql.ErrNoRows) {
+		return ua, types.ErrNotFound
+	} else if err != nil {
 		return ua, err
 	}
 
@@ -23,7 +28,9 @@ func (db DB) UserAccountByID(id types.UserAccountID) (types.UserAccount, error) 
 SELECT id, role_id, created_at, updated_at, username
 FROM user_account
 WHERE id = $1;
-`, id).Scan(&ua.ID, &ua.RoleID, &ua.CreatedAt, &ua.UpdatedAt, &ua.Username); err != nil {
+`, id).Scan(&ua.ID, &ua.RoleID, &ua.CreatedAt, &ua.UpdatedAt, &ua.Username); errors.Is(err, sql.ErrNoRows) {
+		return ua, types.ErrNotFound
+	} else if err != nil {
 		return ua, err
 	}
 
@@ -66,13 +73,18 @@ RETURNING id, created_at;
 }
 
 func (db DB) UpdateUserAccountPassword(id types.UserAccountID, h types.Hash, s types.Salt) error {
-	if _, err := db.pool.Exec(`
+	res, err := db.pool.Exec(`
 UPDATE user_account
 SET updated_at = now(), password = $1, salt = $2
 WHERE id = $3
 RETURNING updated_at;
-`, id, h, s); err != nil {
+`, id, h, s)
+	if err != nil {
 		return err
+	}
+
+	if num, err := res.RowsAffected(); err == nil && num == 0 {
+		return types.ErrNotFound
 	}
 
 	return nil
@@ -84,7 +96,9 @@ UPDATE user_account
 SET role_id = $1, updated_at = now(), username = $2
 WHERE id = $3
 RETURNING updated_at;
-`, ua.RoleID, ua.Username, id).Scan(&ua.UpdatedAt); err != nil {
+`, ua.RoleID, ua.Username, id).Scan(&ua.UpdatedAt); errors.Is(err, sql.ErrNoRows) {
+		return types.ErrNotFound
+	} else if err != nil {
 		return err
 	}
 
@@ -92,11 +106,16 @@ RETURNING updated_at;
 }
 
 func (db DB) DeleteUserAccount(id types.UserAccountID) error {
-	if _, err := db.pool.Exec(`
+	res, err := db.pool.Exec(`
 DELETE FROM user_account
 WHERE id = $1;
-`, id); err != nil {
+`, id)
+	if err != nil {
 		return err
+	}
+
+	if num, err := res.RowsAffected(); err == nil && num == 0 {
+		return types.ErrNotFound
 	}
 
 	return nil

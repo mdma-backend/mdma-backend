@@ -14,7 +14,9 @@ func (db DB) MeshNodeById(id types.UUID) (types.MeshNode, error) {
 SELECT id, mesh_node_update_id, created_at, updated_at, latitude, longitude
 FROM mesh_node
 WHERE id = $1;
-`, id).Scan(&n.UUID, &n.UpdateID, &n.CreatedAt, &n.UpdatedAt, &n.Latitude, &n.Longitude); err != nil {
+`, id).Scan(&n.UUID, &n.UpdateID, &n.CreatedAt, &n.UpdatedAt, &n.Latitude, &n.Longitude); errors.Is(err, sql.ErrNoRows) {
+		return n, types.ErrNotFound
+	} else if err != nil {
 		return n, err
 	}
 
@@ -139,7 +141,9 @@ UPDATE mesh_node
 SET mesh_node_update_id = $1,  updated_at = now(),  latitude = $2, longitude = $3
 WHERE id = $4
 RETURNING created_at, updated_at;
-`, n.UpdateID, n.Latitude, n.Longitude, id).Scan(&n.CreatedAt, &n.UpdatedAt); err != nil {
+`, n.UpdateID, n.Latitude, n.Longitude, id).Scan(&n.CreatedAt, &n.UpdatedAt); errors.Is(err, sql.ErrNoRows) {
+		return types.ErrNotFound
+	} else if err != nil {
 		return err
 	}
 
@@ -147,10 +151,15 @@ RETURNING created_at, updated_at;
 }
 
 func (db DB) DeleteMeshNode(id types.UUID) error {
-	if _, err := db.pool.Exec(`
+	res, err := db.pool.Exec(`
 DELETE FROM mesh_node WHERE id = $1;
-`, id); err != nil {
+`, id)
+	if err != nil {
 		return err
+	}
+
+	if num, err := res.RowsAffected(); err == nil && num == 0 {
+		return types.ErrNotFound
 	}
 
 	return nil

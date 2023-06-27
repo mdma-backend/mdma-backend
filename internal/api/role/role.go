@@ -2,6 +2,7 @@ package role
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -78,7 +79,10 @@ func (s service) getRole() http.HandlerFunc {
 		}
 
 		role, err := s.roleStore.RoleByID(roleID)
-		if err != nil {
+		if errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -120,7 +124,10 @@ func (s service) putRole() http.HandlerFunc {
 			return
 		}
 
-		if err := s.roleStore.UpdateRole(roleID, &role); err != nil {
+		if err := s.roleStore.UpdateRole(roleID, &role); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -139,7 +146,10 @@ func (s service) deleteRole() http.HandlerFunc {
 			return
 		}
 
-		if err := s.roleStore.DeleteRole(roleID); err != nil {
+		if err := s.roleStore.DeleteRole(roleID); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

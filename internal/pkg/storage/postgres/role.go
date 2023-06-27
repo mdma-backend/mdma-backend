@@ -1,7 +1,9 @@
 package postgres
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/mdma-backend/mdma-backend/internal/types"
@@ -17,7 +19,9 @@ JOIN role_permission rp ON r.id = rp.role_id
 JOIN user_account ua ON r.id = ua.role_id
 WHERE ua.id = $1
 GROUP BY r.id;
-`, uaId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+`, uaId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); errors.Is(err, sql.ErrNoRows) {
+		return r, types.ErrNotFound
+	} else if err != nil {
 		return r, err
 	}
 
@@ -38,7 +42,9 @@ JOIN role_permission rp ON r.id = rp.role_id
 JOIN service_account sa ON r.id = sa.role_id
 WHERE sa.id = $1
 GROUP BY r.id;
-`, saId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+`, saId).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); errors.Is(err, sql.ErrNoRows) {
+		return r, types.ErrNotFound
+	} else if err != nil {
 		return r, err
 	}
 
@@ -58,7 +64,9 @@ FROM role r
 JOIN role_permission rp ON r.id = rp.role_id
 WHERE r.id = $1
 GROUP BY r.id;
-`, roleID).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); err != nil {
+`, roleID).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt, &r.Name, &perms); errors.Is(err, sql.ErrNoRows) {
+		return r, types.ErrNotFound
+	} else if err != nil {
 		return r, err
 	}
 
@@ -141,7 +149,9 @@ SET name = $1,
 	updated_at = now()
 WHERE id = $2
 RETURNING updated_at;
-`, role.Name, roleID).Scan(&role.UpdatedAt); err != nil {
+`, role.Name, roleID).Scan(&role.UpdatedAt); errors.Is(err, sql.ErrNoRows) {
+		return types.ErrNotFound
+	} else if err != nil {
 		return err
 	}
 
@@ -176,12 +186,16 @@ WHERE role_id = $1;
 }
 
 func (db DB) DeleteRole(roleID types.RoleID) error {
-	_, err := db.pool.Exec(`
+	res, err := db.pool.Exec(`
 DELETE FROM role
 WHERE id = $1;
 `, roleID)
 	if err != nil {
 		return err
+	}
+
+	if num, err := res.RowsAffected(); err == nil && num == 0 {
+		return types.ErrNotFound
 	}
 
 	return nil
