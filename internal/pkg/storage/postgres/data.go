@@ -100,12 +100,12 @@ func (db DB) getAggregatedDataSamples(timeStamps []time.Time, baseQuery string, 
 		params = append(params, timeStamps[currentStartTime+1])
 
 		if len(meshNodeUUIDs) > 0 {
-			query += `AND mesh_node_id IN (`
+			query += ` AND mesh_node_id IN (`
 			for controllerNumber, uuid := range meshNodeUUIDs {
 				if controllerNumber != 0 {
 					query += `, `
 				}
-				query += `$` + strconv.Itoa(len(params)+controllerNumber+1)
+				query += `$` + strconv.Itoa(len(params)+1)
 				params = append(params, uuid)
 			}
 			query += `)`
@@ -177,7 +177,7 @@ func (db DB) GetManyData(dataType string, meshNodeUUIDs []string, startTime time
 			if i != 0 {
 				query += " OR"
 			}
-			query += " d.mesh_node_id = $" + strconv.Itoa(len(params)+1+i)
+			query += " d.mesh_node_id = $" + strconv.Itoa(len(params)+1)
 			params = append(params, uuid)
 		}
 		query += ")"
