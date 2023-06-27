@@ -2,6 +2,7 @@ package service_account
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -73,7 +74,10 @@ func (s service) getAccountService() http.HandlerFunc {
 		}
 
 		serviceAccount, err := s.serviceAccountStore.ServiceAccountByID(serviceAccountID)
-		if err != nil {
+		if errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -136,7 +140,10 @@ func (s service) refreshAccountServiceToken() http.HandlerFunc {
 		}
 
 		serviceAccount, err := s.serviceAccountStore.ServiceAccountByID(serviceAccountID)
-		if err != nil {
+		if errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -162,7 +169,10 @@ func (s service) refreshAccountServiceToken() http.HandlerFunc {
 		}
 		serviceAccount.Token = token.Value
 
-		if err = s.serviceAccountStore.UpdateServiceAccountToken(serviceAccountID, token); err != nil {
+		if err = s.serviceAccountStore.UpdateServiceAccountToken(serviceAccountID, token); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -186,7 +196,10 @@ func (s service) updateAccountService() http.HandlerFunc {
 			return
 		}
 
-		if err = s.serviceAccountStore.UpdateServiceAccount(serviceAccountID, &serviceAccount); err != nil {
+		if err = s.serviceAccountStore.UpdateServiceAccount(serviceAccountID, &serviceAccount); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -204,7 +217,10 @@ func (s service) deleteAccountService() http.HandlerFunc {
 			return
 		}
 
-		if err := s.serviceAccountStore.DeleteServiceAccount(serviceAccountID); err != nil {
+		if err := s.serviceAccountStore.DeleteServiceAccount(serviceAccountID); errors.Is(err, types.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -367,6 +367,9 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/GetUserAccount"
+        500:
+          description: Internal Server Error.
+
     post:
       tags:
         - User-Accounts
@@ -384,6 +387,8 @@ paths:
                 $ref: "#/components/schemas/GetUserAccount"
         400:
           description: Bad Request.
+        500:
+          description: Internal Server Error.
     
   /accounts/users/{id}:
     parameters:
@@ -400,19 +405,11 @@ paths:
                 $ref: "#/components/schemas/GetUserAccount"
         400:
           description: Bad Request.
-    post:
-      tags:
-        - User-Accounts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PasswordChange"
-      responses:
-        200:
-          description: Created.
-        400:
-          description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
+
     put:
       tags:
         - User-Accounts
@@ -430,6 +427,11 @@ paths:
                 $ref: "#/components/schemas/GetUserAccount"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
+
     delete:
       tags:
         - User-Accounts
@@ -440,6 +442,29 @@ paths:
           description: Bad Request.
         404:
           description: Not Found.
+        500:
+          description: Internal Server Error.
+
+  /accounts/users/{id}/change-password:
+    post:
+      tags:
+        - User-Accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChange"
+      responses:
+        204:
+          description: No Content.
+        400:
+          description: Bad Request.
+        401:
+          description: Unauthorized.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
 
   /accounts/services:
     get:
@@ -454,6 +479,9 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/GetServiceAccount"
+        500:
+          description: Internal Server Error.
+
     post:
       tags:
         - Service-Accounts
@@ -471,6 +499,8 @@ paths:
                 $ref: "#/components/schemas/GetServiceAccount"
         400:
           description: Bad Request.
+        500:
+          description: Internal Server Error.
     
   /accounts/services/{id}:
     parameters:
@@ -487,6 +517,10 @@ paths:
                 $ref: "#/components/schemas/GetServiceAccount"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
     put:
       tags:
         - Service-Accounts
@@ -504,6 +538,11 @@ paths:
                 $ref: "#/components/schemas/GetServiceAccount"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
+          
     delete:
       tags:
         - Service-Accounts
@@ -514,6 +553,8 @@ paths:
           description: Bad Request.
         404:
           description: Not Found.
+        500:
+          description: Internal Server Error.
 
   /accounts/services/{id}/refresh-token:
     parameters:
@@ -530,6 +571,10 @@ paths:
                 $ref: "#/components/schemas/GetServiceAccount"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
 
   /roles:
     get:
@@ -544,6 +589,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/GetRole"
+        500:
+          description: Internal Server Error.
     post:
       tags:
         - Roles
@@ -561,6 +608,8 @@ paths:
                 $ref: "#/components/schemas/GetRole"
         400:
           description: Bad Request.
+        500:
+          description: Internal Server Error.
 
   /roles/{id}:
     parameters:
@@ -577,6 +626,10 @@ paths:
                 $ref: "#/components/schemas/GetRole"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
     put:
       tags:
         - Roles
@@ -594,6 +647,11 @@ paths:
                 $ref: "#/components/schemas/GetRole"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
+
     delete:
       tags:
         - Roles
@@ -604,6 +662,8 @@ paths:
           description: Bad Request.
         404:
           description: Not Found.
+        500:
+          description: Internal Server Error.
     
   /roles/permissions:
     get:
@@ -618,6 +678,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Permission"
+        500:
+          description: Internal Server Error.
 
   /areas:
     get:
@@ -632,8 +694,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Area"
-        400:
-          description: Bad Request.
 
   /areas/{id}:
     parameters:
@@ -650,6 +710,8 @@ paths:
                 $ref: "#/components/schemas/Area"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
 
   /mesh-node-updates:
     get:
@@ -664,6 +726,9 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/GetUpdate"
+        500:
+          description: Internal Server Error.
+
     post:
       tags:
         - Updates
@@ -681,6 +746,8 @@ paths:
                 $ref: "#/components/schemas/GetUpdate"
         400:
           description: Bad Request.
+        500:
+          description: Internal Server Error.
 
   /mesh-node-updates/{id}:
     parameters:
@@ -697,6 +764,10 @@ paths:
                 $ref: "#/components/schemas/GetUpdate"
         400:
           description: Bad Request.
+        404:
+          description: Not Found.
+        500:
+          description: Internal Server Error.
     
   /me:
     get:
@@ -709,6 +780,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Me"
+        400:
+          description: Bad Request.
 
 # SCHEMAS ####################################################################################
 
