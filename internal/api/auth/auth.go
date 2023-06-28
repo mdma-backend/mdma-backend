@@ -43,14 +43,15 @@ func LoginHandler(
 			return
 		}
 
+		errInvalidCreds := "invalid credentials"
 		hash, salt, err := authStore.PasswordHashAndSaltByUsername(creds.Username)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, errInvalidCreds, http.StatusInternalServerError)
 			return
 		}
 
 		if !hashService.HashAndCompare(creds.Password, hash, salt) {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			http.Error(w, errInvalidCreds, http.StatusUnauthorized)
 			return
 		}
 

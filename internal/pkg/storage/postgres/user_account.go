@@ -78,7 +78,7 @@ UPDATE user_account
 SET updated_at = now(), password = $1, salt = $2
 WHERE id = $3
 RETURNING updated_at;
-`, id, h, s)
+`, h, s, id)
 	if err != nil {
 		return err
 	}
